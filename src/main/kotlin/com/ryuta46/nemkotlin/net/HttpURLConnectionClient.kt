@@ -40,7 +40,14 @@ class HttpURLConnectionClient : HttpClient {
             request.properties.forEach { key, value ->
                 connection.setRequestProperty(key, value)
             }
-            connection.connect()
+
+            if (request.body.isNotEmpty()) {
+                connection.doOutput = true
+                connection.outputStream.bufferedWriter().use { it.write(request.body) }
+            } else {
+                connection.connect()
+            }
+
 
             val status = connection.responseCode
             if (status != HttpURLConnection.HTTP_OK) {

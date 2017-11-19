@@ -24,7 +24,7 @@
 
 package com.ryuta46.nemkotlin.client
 
-import com.ryuta46.nemkotlin.model.AccountMetaDataPair
+import com.ryuta46.nemkotlin.model.*
 import com.ryuta46.nemkotlin.net.HttpClient
 import com.ryuta46.nemkotlin.net.HttpURLConnectionClient
 import com.ryuta46.nemkotlin.util.Logger
@@ -53,7 +53,7 @@ class RxNemApiClient(hostUrl: String,
         return Observable.create { subscriber ->
             try {
                 val response = body()
-                subscriber.onNext(response)
+                if (response != null) subscriber.onNext(response)
             } catch (e: Throwable) {
                 subscriber.onError(e)
             }
@@ -69,10 +69,46 @@ class RxNemApiClient(hostUrl: String,
             observe { syncClient.get<T>(path, query) }
 
     /**
+     * @see NemApiClient.post
+     */
+    inline fun <R, reified S : Any>post(path: String, body: R, query: Map<String, String> = emptyMap()): Observable<S> =
+            observe { syncClient.post<R, S>(path, body, query) }
+
+    /**
+     * @see NemApiClient.accountGet
+     */
+    fun accountGet(address: String): Observable<AccountMetaDataPair> =
+            observe { syncClient.accountGet(address) }
+
+    /**
      * @see NemApiClient.accountGetFromPublicKey
      */
     fun accountGetFromPublicKey(publicKey: String): Observable<AccountMetaDataPair> =
             observe { syncClient.accountGetFromPublicKey(publicKey) }
+
+    /**
+     * @see NemApiClient.accountMosaicOwned
+     */
+    fun accountMosaicOwned(address: String): Observable<MosaicArray> =
+            observe { syncClient.accountMosaicOwned(address) }
+
+    /**
+     * @see NemApiClient.namespaceMosaicDefinitionPage
+     */
+    fun namespaceMosaicDefinitionPage(namespace: String, id: Int = -1, pageSize: Int = -1): Observable<MosaicDefinitionMetaDataPairArray> =
+            observe { syncClient.namespaceMosaicDefinitionPage(namespace, id, pageSize) }
+
+    /**
+     * @see NemApiClient.namespaceMosaicDefinitionFromName
+     */
+    fun namespaceMosaicDefinitionFromName(namespace: String, name: String): Observable<MosaicDefinitionMetaDataPair?> =
+            observe { syncClient.namespaceMosaicDefinitionFromName(namespace, name) }
+
+    /**
+     * @see NemApiClient.transactionAnnounce
+     */
+    fun transactionAnnounce(requestAnnounce: RequestAnnounce): Observable<NemAnnounceResult> =
+            observe { syncClient.transactionAnnounce(requestAnnounce) }
 
 }
 
