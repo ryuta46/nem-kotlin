@@ -62,7 +62,8 @@ class AccountGenerator {
             val tmpPrivateKey = KeyPairGenerator().generateKeyPair().private as EdDSAPrivateKey
             val param = tmpPrivateKey.params
             // set hash algorithm to Keccak-512(official version of SHA3 512 bit)
-            val paramSpec = EdDSAParameterSpec(param.curve, "Keccak-512", param.scalarOps, param.b)
+            //val paramSpec = EdDSAParameterSpec(param.curve, "Keccak-512", param.scalarOps, param.b)
+            val paramSpec = EdDSAParameterSpec(param.curve, "SHA3-512", param.scalarOps, param.b)
             // now create key pair from given seed.
             val privateKey = EdDSAPrivateKey(EdDSAPrivateKeySpec(seed, paramSpec))
             val publicKey = EdDSAPublicKey(EdDSAPublicKeySpec(privateKey.a, privateKey.params))

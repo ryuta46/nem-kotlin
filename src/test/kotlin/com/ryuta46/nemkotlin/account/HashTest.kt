@@ -57,7 +57,7 @@ class HashTest {
         Hash.initialize()
     }
     @After fun tearDown() {
-        Hash.finalize()
+        //Hash.finalize()
     }
 
     @Theory fun sha3_256(fixture: Sha3_256Fixture) {

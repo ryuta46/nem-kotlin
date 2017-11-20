@@ -23,7 +23,8 @@
  */
 package com.ryuta46.nemkotlin.account
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider
+
+import org.spongycastle.jce.provider.BouncyCastleProvider
 import java.security.MessageDigest
 import java.security.Security
 
@@ -40,19 +41,13 @@ class Hash {
         }
 
         /**
-         * Finalizes hash functions.
-         */
-        @JvmStatic fun finalize() {
-            Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME)
-        }
-
-        /**
          * Calculates SHA3 (Keccak) 256 bit hash
          * @param message Input message.
          * @return 256 bit hash
          */
         @JvmStatic fun sha3_256(message: ByteArray): ByteArray {
-            val hash = MessageDigest.getInstance("Keccak-256")
+            //val hash = MessageDigest.getInstance("Keccak-256")
+            val hash = MessageDigest.getInstance("SHA3-256")
             return hash.digest(message)
         }
 
@@ -62,7 +57,8 @@ class Hash {
          * @return 512 bit hash
          */
         @JvmStatic fun sha3_512(message: ByteArray): ByteArray {
-            val hash = MessageDigest.getInstance("Keccak-512")
+            //val hash = MessageDigest.getInstance("Keccak-512")
+            val hash = MessageDigest.getInstance("SHA3-512")
             return hash.digest(message)
         }
 
