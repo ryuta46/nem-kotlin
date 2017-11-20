@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var account: Account
 
-    private val client = RxNemApiClient("http://62.75.251.134:7890", logger = AndroidLogger())
+    private val client = RxNemApiClient("http://23.228.67.85:7890", logger = AndroidLogger())
 
     private val mosaicNamespaceId = "ttech"
     private val mosaicName = "ryuta"
@@ -75,10 +75,10 @@ class MainActivity : AppCompatActivity() {
         // Account generation.
         val savedPrivateKey = loadPrivateKey()
         if (savedPrivateKey.isEmpty()) {
-            account = AccountGenerator.fromRandomSeed(Version.Main)
+            account = AccountGenerator.fromRandomSeed(Version.Test)
             savePrivateKey(account.privateKeyString)
         } else {
-            account = AccountGenerator.fromSeed(ConvertUtils.toByteArray(savedPrivateKey), Version.Main)
+            account = AccountGenerator.fromSeed(ConvertUtils.toByteArray(savedPrivateKey), Version.Test)
         }
 
         textAddress.text = account.address
@@ -164,15 +164,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun sendXem(receiverAddress: String, microNem: Long) {
-        val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, microNem)
+        val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, microNem, Version.Test)
         showMessageOnResponse(client.transactionAnnounce(transaction))
     }
 
 
     private fun sendMosaic(receiverAddress: String, quantity: Long) {
         val transaction = TransactionHelper.createMosaicTransferTransaction(account, receiverAddress,
-                listOf(MosaicAttachment(mosaicNamespaceId, mosaicName, quantity, mosaicSupply, mosaicDivisibility))
-                )
+                listOf(MosaicAttachment(mosaicNamespaceId, mosaicName, quantity, mosaicSupply, mosaicDivisibility)),
+                Version.Test)
 
         showMessageOnResponse(client.transactionAnnounce(transaction))
     }
