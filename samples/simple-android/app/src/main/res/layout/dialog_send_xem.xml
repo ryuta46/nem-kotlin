@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <TextView
+        android:id="@+id/labelAddress"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Receiver Address"
+        app:layout_constraintBottom_toTopOf="@+id/editTextAddress"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <EditText
+        android:id="@+id/editTextAddress"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:hint="NADDRESSADDRESS..."
+        app:layout_constraintBottom_toBottomOf="@id/labelXem"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/labelAddress"
+        />
+
+
+    <TextView
+        android:id="@+id/labelXem"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Micro NEM( 1 micro nem = 0.000001 xem)"
+        app:layout_constraintBottom_toTopOf="@id/editTextMicroNem"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/editTextAddress"
+        />
+
+    <EditText
+        android:id="@+id/editTextMicroNem"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:inputType="number"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/labelXem"
+        android:hint="1"
+        />
+
+</android.support.constraint.ConstraintLayout>

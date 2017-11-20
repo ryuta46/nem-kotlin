@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <TextView
+        android:id="@+id/labelAddress"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Address"
+        app:layout_constraintBottom_toTopOf="@+id/textAddress"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <TextView
+        android:id="@+id/textAddress"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@id/textMessage"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/labelAddress"
+        tools:text="ADDRESSADDRESSADDRESS"
+        />
+
+
+    <TextView
+        android:id="@+id/textMessage"
+        android:background="@android:color/darker_gray"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toTopOf="@id/buttonAccountInfo"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/textAddress"
+        tools:text="TEXTMESSAGE"
+        />
+
+    <Button
+        android:id="@+id/buttonAccountInfo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="ACCOUNT INFO"
+        app:layout_constraintBottom_toTopOf="@id/buttonMosaicInfo"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/buttonSendXem"
+        app:layout_constraintTop_toBottomOf="@id/textMessage"
+        />
+
+    <Button
+        android:id="@+id/buttonSendXem"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="SEND XEM"
+        app:layout_constraintBottom_toTopOf="@id/buttonSendMosaic"
+        app:layout_constraintLeft_toRightOf="@id/buttonAccountInfo"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/textMessage"
+        />
+
+
+    <Button
+        android:id="@+id/buttonMosaicInfo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="MOSAIC INFO"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@+id/buttonSendMosaic"
+        app:layout_constraintTop_toBottomOf="@id/buttonAccountInfo"
+        />
+
+    <Button
+        android:id="@+id/buttonSendMosaic"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="SEND MOSAIC"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toRightOf="@id/buttonMosaicInfo"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/buttonSendXem"
+        />
+
+</android.support.constraint.ConstraintLayout>

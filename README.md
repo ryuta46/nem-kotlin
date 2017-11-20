@@ -9,6 +9,10 @@ This library wraps HTTP requests to NIS(NEM Infrastructure Server) and HTTP resp
 
 This library also provides crypt related utilities like key pair generation signing and verifying.
 
+## Sample
+
+Sample projects are in [samples](samples) directory.
+
 ## How to setup
 
 ### Download jar
