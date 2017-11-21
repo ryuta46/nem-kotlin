@@ -132,7 +132,7 @@ val rxClient = RxNemApiClient("http://62.75.251.134:7890")
 ```
 
 
-### Getting an account information
+### アカウント情報の取得
 
 API クライアントは NEM の API に対応したメソッドを持っています。
 
@@ -150,7 +150,7 @@ rxClient.accountGet(account.address)
     }
 ```
 
-### Sending XEM and Mosaics
+### XEM、モザイクの送信
 
 送金など、署名が必要なトランザクションの生成は 'TransactionHelper' を使います。
 
@@ -176,7 +176,7 @@ val result = client.transactionAnnounce(transaction)
 
 ```kotlin
 val response = client.namespaceMosaicDefinitionFromName(namespaceId, name)
-if (mosaicDefinition != null) {
+if (response != null) {
     supply = response.mosaic.initialSupply!!
     divisibility = response.mosaic.divisibility!!
 }
