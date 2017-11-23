@@ -22,18 +22,31 @@
  * SOFTWARE.
  */
 
-package com.ryuta46.nemkotlin
+package com.ryuta46.nemkotlin.util
 
-class Settings {
+import com.ryuta46.nemkotlin.Settings
+import junit.framework.TestCase.assertEquals
+import org.junit.experimental.theories.DataPoints
+import org.junit.experimental.theories.Theory
+
+
+class NetworkUtilsTest {
     companion object {
-        const val MAIN_HOST = "http://62.75.251.134:7890"
-        //const val TEST_HOST = "http://23.228.67.85:7890"
-        const val TEST_HOST = "http://bob.nem.ninja:7778"
+        @DataPoints
+        @JvmStatic fun getCreateUrlStringFixtures() = arrayOf(
+                CreateUrlStringFixture("", emptyMap(), Settings.TEST_HOST),
+                CreateUrlStringFixture("/path", emptyMap(), Settings.TEST_HOST + "/path"),
+                CreateUrlStringFixture("/path", mapOf("qu" to "val"), Settings.TEST_HOST + "/path?qu=val"),
 
-        const val ADDRESS = "TDDYOPCS46Z5STBF3F5OI5PA2JE52JO6XVXICZIR"
-        const val PRIVATE_KEY = ""
-        const val PUBLIC_KEY = "7dde4bc3e7be43fc42c9579c0425da8528552e8d5f19a2533611b589e576f15f"
+                CreateUrlStringFixture("/path", mapOf("k1" to "v1", "k2" to "v2"), Settings.TEST_HOST + "/path?k1=v1&k2=v2")
+        )
+    }
 
-        const val RECEIVER = "TCRUHA3423WEYZN64CZ62IVK53VQ5JGIRJT5UMAE"
+    data class CreateUrlStringFixture(val path: String, val queries: Map<String, String>, val expected: String)
+
+    @Theory fun createUrlString(fixture: CreateUrlStringFixture) {
+        val actual = NetworkUtils.createUrlString(Settings.TEST_HOST, fixture.path, fixture.queries)
+        println(actual)
+        assertEquals(fixture.expected, actual)
     }
 }

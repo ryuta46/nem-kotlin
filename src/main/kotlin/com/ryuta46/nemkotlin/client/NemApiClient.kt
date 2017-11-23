@@ -33,6 +33,7 @@ import com.ryuta46.nemkotlin.net.HttpRequest
 import com.ryuta46.nemkotlin.net.HttpResponse
 import com.ryuta46.nemkotlin.net.HttpURLConnectionClient
 import com.ryuta46.nemkotlin.util.Logger
+import com.ryuta46.nemkotlin.util.NetworkUtils
 import com.ryuta46.nemkotlin.util.NoOutputLogger
 import java.net.HttpURLConnection
 import java.net.URI
@@ -58,7 +59,7 @@ class NemApiClient(val hostUrl: String,
      * @return data model corresponding to the API response.
      */
     inline fun <reified T : Any>get(path: String, queries: Map<String, String> = emptyMap()): T {
-        val uri = URI(createUrlString(path, queries))
+        val uri = URI(NetworkUtils.createUrlString(hostUrl, path, queries))
 
         logger.log(Logger.Level.Info, "get request url = $uri")
         val request = HttpRequest(
@@ -102,7 +103,7 @@ class NemApiClient(val hostUrl: String,
      * @return data model corresponding to the API response.
      */
     inline fun <R, reified S : Any>post(path: String, body: R, queries: Map<String, String> = emptyMap()): S {
-        val uri = URI(createUrlString(path, queries))
+        val uri = URI(NetworkUtils.createUrlString(hostUrl, path, queries))
         val requestBodyString = Gson().toJson(body)
 
         logger.log(Logger.Level.Info, "post request url = $uri, body = $requestBodyString")
@@ -135,23 +136,6 @@ class NemApiClient(val hostUrl: String,
             val message = "Failed to parse response: $responseString"
             logger.log(Logger.Level.Error, message)
             throw ParseException(message)
-        }
-    }
-
-
-    /**
-     * Creates URL String by concatenating hostURL, path and queries.
-     * @param path Path.
-     * @param queries Queries.
-     * @return Full URL String.
-     */
-    fun createUrlString(path: String, queries: Map<String, String>): String {
-        val url = hostUrl + path
-        if (queries.isEmpty()){
-            return url
-        }
-        return url +  "?" + queries.toList().joinToString(separator = "&") {
-            it.first + "=" + it.second
         }
     }
 

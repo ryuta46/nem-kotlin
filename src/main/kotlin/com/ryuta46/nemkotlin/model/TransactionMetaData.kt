@@ -31,7 +31,7 @@ package com.ryuta46.nemkotlin.model
  * @property height The hash of the transaction.
  */
 data class TransactionMetaData(
-        val height: Int,
+        val height: Long, // FIXME: This is Int, maybe. Defined as Long not to crash when the response from a '/unconfirmed' channel of WebSocket communication.
         val id: Int,
         val hash: TransactionHash
 )

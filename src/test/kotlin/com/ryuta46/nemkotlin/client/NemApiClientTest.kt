@@ -45,14 +45,6 @@ import org.junit.runner.RunWith
 @RunWith(Theories::class)
 class NemApiClientTest {
     companion object {
-        @DataPoints @JvmStatic fun getCreateUrlStringFixtures() = arrayOf(
-                CreateUrlStringFixture("", emptyMap(), Settings.TEST_HOST),
-                CreateUrlStringFixture("/path", emptyMap(), Settings.TEST_HOST + "/path"),
-                CreateUrlStringFixture("/path", mapOf("qu" to "val"), Settings.TEST_HOST + "/path?qu=val"),
-
-                CreateUrlStringFixture("/path", mapOf("k1" to "v1", "k2" to "v2"), Settings.TEST_HOST + "/path?k1=v1&k2=v2")
-        )
-
         @DataPoints @JvmStatic fun getTransferAnnounceFixture() = arrayOf(
                 TransferAnnounceFixture(1, "", emptyList()),
                 TransferAnnounceFixture(0, "test", emptyList()),
@@ -71,16 +63,6 @@ class NemApiClientTest {
         val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
         println(jsonString)
     }
-
-    data class CreateUrlStringFixture(val path: String, val queries: Map<String, String>, val expected: String)
-
-    @Theory
-    fun createUrlString(fixture: CreateUrlStringFixture) {
-        val actual = client.createUrlString(fixture.path, fixture.queries)
-        println(actual)
-        assertEquals(fixture.expected, actual)
-    }
-
 
     @Test
     fun get() {
