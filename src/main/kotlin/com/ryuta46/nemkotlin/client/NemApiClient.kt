@@ -32,6 +32,7 @@ import com.ryuta46.nemkotlin.net.HttpClient
 import com.ryuta46.nemkotlin.net.HttpRequest
 import com.ryuta46.nemkotlin.net.HttpResponse
 import com.ryuta46.nemkotlin.net.HttpURLConnectionClient
+import com.ryuta46.nemkotlin.util.LogWrapper
 import com.ryuta46.nemkotlin.util.Logger
 import com.ryuta46.nemkotlin.util.NetworkUtils
 import com.ryuta46.nemkotlin.util.NoOutputLogger
@@ -48,7 +49,9 @@ import java.net.URI
  */
 class NemApiClient(val hostUrl: String,
                    val httpClient: HttpClient = HttpURLConnectionClient(),
-                   val logger: Logger = NoOutputLogger()) {
+                   private val logger: Logger = NoOutputLogger()) {
+
+    val logWrapper = LogWrapper(logger, this::class.java.simpleName)
 
     /**
      * Requests with GET method.
@@ -61,7 +64,7 @@ class NemApiClient(val hostUrl: String,
     inline fun <reified T : Any>get(path: String, queries: Map<String, String> = emptyMap()): T {
         val uri = URI(NetworkUtils.createUrlString(hostUrl, path, queries))
 
-        logger.log(Logger.Level.Info, "get request url = $uri")
+        logWrapper.i("get request url = $uri")
         val request = HttpRequest(
                 uri = uri,
                 method = "GET",
@@ -72,23 +75,23 @@ class NemApiClient(val hostUrl: String,
         try {
             response = httpClient.load(request)
         } catch (e: Throwable) {
-            logger.log(Logger.Level.Error, e.message ?: "Some error occurred during communcation with NIS.")
+            logWrapper.e(e.message ?: "Some error occurred during communcation with NIS.")
             throw e
         }
 
         if (response.status != HttpURLConnection.HTTP_OK) {
             val message = "Illegal response status: ${response.status}"
-            logger.log(Logger.Level.Error, message)
+            logWrapper.e(message)
             throw NetworkException(message)
         }
 
         val responseString = response.body
         try {
-            logger.log(Logger.Level.Info, "response = $responseString")
+            logWrapper.i("response = $responseString")
             return Gson().fromJson(responseString, T::class.java)
         } catch (e: JsonParseException) {
             val message = "Failed to parse response: $responseString"
-            logger.log(Logger.Level.Error, message)
+            logWrapper.e(message)
             throw ParseException(message)
         }
     }
@@ -106,7 +109,7 @@ class NemApiClient(val hostUrl: String,
         val uri = URI(NetworkUtils.createUrlString(hostUrl, path, queries))
         val requestBodyString = Gson().toJson(body)
 
-        logger.log(Logger.Level.Info, "post request url = $uri, body = $requestBodyString")
+        logWrapper.i("post request url = $uri, body = $requestBodyString")
         val request = HttpRequest(
                 uri = uri,
                 method = "POST",
@@ -118,23 +121,23 @@ class NemApiClient(val hostUrl: String,
         try {
             response = httpClient.load(request)
         } catch (e: Throwable) {
-            logger.log(Logger.Level.Error, e.message ?: "Some error occurred during communcation with NIS.")
+            logWrapper.e(e.message ?: "Some error occurred during communcation with NIS.")
             throw e
         }
 
         if (response.status != HttpURLConnection.HTTP_OK) {
             val message = "Illegal response status: ${response.status}"
-            logger.log(Logger.Level.Error, message)
+            logWrapper.e(message)
             throw NetworkException(message)
         }
 
         val responseString = response.body
         try {
-            logger.log(Logger.Level.Info, "response = $responseString")
+            logWrapper.i("response = $responseString")
             return Gson().fromJson(responseString, S::class.java)
         } catch (e: JsonParseException) {
             val message = "Failed to parse response: $responseString"
-            logger.log(Logger.Level.Error, message)
+            logWrapper.e(message)
             throw ParseException(message)
         }
     }

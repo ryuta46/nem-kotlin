@@ -24,12 +24,6 @@
 
 package com.ryuta46.nemkotlin.net
 
-import java.net.URI
-import java.net.URL
-
-interface WebSocketClient {
-    fun open(uri: URI, listener: WebSocketListener)
-    fun send(bytes: ByteArray)
-    fun close()
+interface WebSocketClientFactory {
+    fun create() : WebSocketClient
 }
-

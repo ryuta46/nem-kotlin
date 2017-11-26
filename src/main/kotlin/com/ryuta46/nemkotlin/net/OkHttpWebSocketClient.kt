@@ -30,17 +30,27 @@ import okhttp3.Request
 import okhttp3.Response
 import okhttp3.WebSocket
 import okio.ByteString
-import java.net.URL
+import java.net.URI
 import java.nio.ByteBuffer
+import java.util.concurrent.TimeUnit
 
 
-class OkHttpWebSocketClient : WebSocketClient {
-    private val client = OkHttpClient()//OkHttpClient.Builder().readTimeout(3, TimeUnit.SECONDS).build()
+class OkHttpWebSocketClient : WebSocketClient, WebSocketClientFactory {
+    private val client = //OkHttpClient()
+            OkHttpClient.Builder()
+                    .readTimeout(3, TimeUnit.SECONDS)
+                    .writeTimeout(3, TimeUnit.SECONDS)
+                    .connectTimeout(3, TimeUnit.SECONDS)
+                    .pingInterval(1, TimeUnit.SECONDS)
+                    .retryOnConnectionFailure(false)
+                    .build()
     private var socket: WebSocket? = null
 
-    override fun open(url: URL, listener: WebSocketListener) {
+    override fun create(): WebSocketClient = OkHttpWebSocketClient()
+
+    override fun open(uri: URI, listener: WebSocketListener) {
         synchronized(this) {
-            val okRequest = Request.Builder().get().url(url).build()
+            val okRequest = Request.Builder().get().url(uri.toURL()).build()
             socket = client.newWebSocket(okRequest, object : okhttp3.WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket?, response: Response?) {
                     listener.onOpen()

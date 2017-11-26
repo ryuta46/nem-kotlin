@@ -27,8 +27,10 @@ package com.ryuta46.nemkotlin
 class Settings {
     companion object {
         const val MAIN_HOST = "http://62.75.251.134:7890"
-        //const val TEST_HOST = "http://23.228.67.85:7890"
-        const val TEST_HOST = "http://bob.nem.ninja:7778"
+        const val TEST_HOST = "http://23.228.67.85:7890"
+        //const val TEST_WEB_SOCKET = "http://23.228.67.85:7778"
+        const val TEST_WEB_SOCKET = "http://104.128.226.60:7778"
+        //const val TEST_HOST = "http://bob.nem.ninja:7778"
 
         const val ADDRESS = "TDDYOPCS46Z5STBF3F5OI5PA2JE52JO6XVXICZIR"
         const val PRIVATE_KEY = ""

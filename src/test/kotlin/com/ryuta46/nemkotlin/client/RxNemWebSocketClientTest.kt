@@ -24,118 +24,314 @@
 
 package com.ryuta46.nemkotlin.client
 
-import com.google.gson.GsonBuilder
+import com.google.gson.Gson
 import com.ryuta46.nemkotlin.Settings
 import com.ryuta46.nemkotlin.account.AccountGenerator
+import com.ryuta46.nemkotlin.enums.Version
+import com.ryuta46.nemkotlin.exceptions.NetworkException
 import com.ryuta46.nemkotlin.model.*
+import com.ryuta46.nemkotlin.transaction.MosaicAttachment
+import com.ryuta46.nemkotlin.transaction.TransactionHelper
+import com.ryuta46.nemkotlin.util.ConvertUtils
 import com.ryuta46.nemkotlin.util.StandardLogger
-import io.reactivex.Scheduler
+import io.reactivex.Observable
 import io.reactivex.schedulers.Schedulers
-
+import junit.framework.TestCase.*
 import org.junit.Test
 
 class RxNemWebSocketClientTest {
     private fun <T>printModel(model: T) {
-        val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
+        //val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
+        val jsonString = Gson().toJson(model)
         println(jsonString)
     }
 
 
     //private val client = RxNemWebSocketClient("http://bob.nem.ninja:7778", logger = StandardLogger())
-    private val client = RxNemWebSocketClient("http://23.228.67.85:7778", logger = StandardLogger())
+    private val client = RxNemWebSocketClient(Settings.TEST_WEB_SOCKET, logger = StandardLogger())
+    private val syncClient = NemApiClient(Settings.TEST_HOST, logger = StandardLogger())
     //private val client = RxNemWebSocketClient("http://62.75.251.134:7778", logger = StandardLogger())
 
-    @Test fun accountGet(){
-        client.accountGet(Settings.ADDRESS)
-                .subscribeOn(Schedulers.newThread())
-                .subscribe { account: AccountMetaDataPair ->
-                    printModel(account)
-                }
+    private fun <T>waitUntilNotNull(timeout: Int = 30 * 1000, body: () -> T) {
+        for(i in 0 until timeout / 10) {
+            if (body() != null) return
+            Thread.sleep(10)
+        }
+    }
 
+    private fun transactionAnnounceMosaic(): String {
+        if (Settings.PRIVATE_KEY.isEmpty()) {
+            return ""
+        }
+        val account = AccountGenerator.fromSeed(ConvertUtils.toByteArray(Settings.PRIVATE_KEY), Version.Test)
+
+        val request = TransactionHelper.createMosaicTransferTransaction(
+                account,
+                Settings.RECEIVER,
+                listOf(MosaicAttachment("ttech", "ryuta", 1, 1_000_000,0)),
+                Version.Test)
+
+        val result = syncClient.transactionAnnounce(request)
+
+        assertEquals(1, result.type)
+        assertEquals(1, result.code)
+        assertEquals("SUCCESS", result.message)
+        return result.transactionHash.data
+    }
+
+    @Test fun accountGet(){
+        var result: AccountMetaDataPair? = null
+        val subscription = client.accountGet(Settings.ADDRESS)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { result = it }
+
+        waitUntilNotNull { result }
+        subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
 
     }
 
     @Test fun recentTransactions(){
-        client.recentTransactions(Settings.ADDRESS)
+        var result: TransactionMetaDataPairArray? = null
+        val subscription = client.recentTransactions(Settings.ADDRESS)
                 .subscribeOn(Schedulers.newThread())
-                .subscribe { transactions: TransactionMetaDataPairArray ->
-                    printModel(transactions)
-                }
+                .subscribe { result = it }
 
-
+        waitUntilNotNull { result }
+        subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
     }
 
 
     @Test fun transactions(){
-        client.transactions(Settings.ADDRESS)
+        var result: TransactionMetaDataPair? = null
+        var hash = ""
+        var subscribed: Boolean? = null
+        val subscription = client.transactions(Settings.ADDRESS) { subscribed = true }
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { transaction: TransactionMetaDataPair ->
-                    printModel(transaction)
+                    if (hash == transaction.meta.hash.data) result = transaction
                 }
 
+        waitUntilNotNull { subscribed }
 
+        hash = transactionAnnounceMosaic()
+        if (hash.isEmpty()) {
+            assertNull(result)
+            return
+        }
+
+        // the transaction is not confirmed yet.
+        assertNull(result)
+
+        waitUntilNotNull(10 * 60 * 1000) { result }
+        subscription.dispose()
+        printModel(result)
+        assertNotNull(result)
     }
 
     @Test fun unconfirmed() {
-        client.unconfirmed(Settings.ADDRESS)
+        var result: TransactionMetaDataPair? = null
+        var hash = ""
+        var subscribed: Boolean? = null
+        val subscription = client.unconfirmed(Settings.ADDRESS) { subscribed = true }
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { transaction: TransactionMetaDataPair ->
-                    printModel(transaction)
+                    if (hash == transaction.meta.hash.data) result = transaction
                 }
 
+        waitUntilNotNull { subscribed }
 
+        hash = transactionAnnounceMosaic()
+        if (hash.isEmpty()) {
+            assertNull(result)
+            return
+        }
+
+        waitUntilNotNull { result }
+        subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
     }
 
     @Test fun accountMosaicOwnedDefinition() {
-        client.accountMosaicOwnedDefinition(Settings.ADDRESS)
+        var result: MosaicDefinition? = null
+        val subscription = client.accountMosaicOwnedDefinition(Settings.RECEIVER)
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { mosaicDefinition: MosaicDefinition ->
-                    printModel(mosaicDefinition)
+                    result = mosaicDefinition
                 }
+
+        waitUntilNotNull { result }
+        subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
     }
 
 
     @Test fun accountMosaicOwned(){
-        client.accountMosaicOwned(Settings.ADDRESS)
+        var result: Mosaic? = null
+        val subscription = client.accountMosaicOwned(Settings.ADDRESS)
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { mosaic: Mosaic ->
-                    printModel(mosaic)
+                    result = mosaic
                 }
+
+        waitUntilNotNull { result }
+        subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
 
     }
     @Test fun accountNamespaceOwned(){
-        client.accountNamespaceOwned(Settings.ADDRESS)
+        var result: Namespace? = null
+        val subscription = client.accountNamespaceOwned(Settings.RECEIVER)
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { namespace: Namespace ->
-                    printModel(namespace)
+                    result = namespace
                 }
 
+        waitUntilNotNull { result }
+        subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
     }
 
     @Test fun blocks(){
+        var result: Block? = null
         val subscription = client.blocks()
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { block: Block ->
-                    printModel(block)
+                    result = block
                 }
 
-        //Thread.sleep(30 * 60 * 1000)
-        //Thread.sleep(5 * 60 * 1000)
-
+        waitUntilNotNull(10 * 60 * 1000) { result }
         subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
+
+
     }
 
     @Test fun blocksNew(){
+        var result: BlockHeight? = null
         val subscription = client.blocksNew()
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { block: BlockHeight ->
-                    printModel(block)
+                    result = block
                 }
 
-        //Thread.sleep(30 * 60 * 1000)
-        //Thread.sleep(5 * 60 * 1000)
-
+        waitUntilNotNull(10 * 60 * 1000) { result }
         subscription.dispose()
+        assertNotNull(result)
+        printModel(result)
+    }
+
+    @Test fun errorNetwork() {
+        var result: Throwable? = null
+        val errorClient = RxNemWebSocketClient("http://invalidinvalid:7778", logger = StandardLogger())
+
+        val subscription = errorClient.accountGet(Settings.ADDRESS)
+                .subscribeOn(Schedulers.newThread())
+                .onErrorResumeNext { e: Throwable ->
+                    result = e
+                    Observable.empty()
+                }
+                .subscribe { _: AccountMetaDataPair -> }
+
+        waitUntilNotNull { result }
+        subscription.dispose()
+        assertNotNull(result)
+
+        assertTrue(result is NetworkException)
+    }
+
+    // unconfirmed -> confirmed transaction sequence
+    @Test fun transactionSequence() {
+        var unconfirmed : TransactionMetaDataPair? = null
+        var confirmed : TransactionMetaDataPair? = null
+        var hash = ""
+        var subscribed: Boolean? = null
+
+        val subscriptionUnconfirmed = client.unconfirmed(Settings.ADDRESS)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { transaction: TransactionMetaDataPair ->
+                    if (hash == transaction.meta.hash.data) unconfirmed = transaction
+                }
+
+        val subscriptionConfirmed = client.transactions(Settings.ADDRESS) { subscribed = true}
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { transaction: TransactionMetaDataPair ->
+                    if (hash == transaction.meta.hash.data) confirmed = transaction
+                }
+
+        waitUntilNotNull { subscribed }
+
+        hash = transactionAnnounceMosaic()
+        if (hash.isEmpty()) {
+            assertNull(unconfirmed)
+            assertNull(confirmed)
+            return
+        }
+
+        // check unconfirmed transaction
+        waitUntilNotNull { unconfirmed }
+
+        // the confirmed transaction is not confirmed yet.
+        assertNull(confirmed)
+
+        // check confirmed transaction
+        waitUntilNotNull(10 * 60 * 1000) { confirmed }
+        subscriptionUnconfirmed.dispose()
+        subscriptionConfirmed.dispose()
+
+        Thread.sleep(10 * 60)
+        printModel(unconfirmed)
+        printModel(confirmed)
+        assertNotNull(confirmed)
+    }
+
+    @Test fun reusingSubscriptionId() {
+        // ID 0 accountGet
+        var account: AccountMetaDataPair? = null
+        var namespace: Namespace? = null
+        val subscriptionAccount = client.accountGet(Settings.ADDRESS)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { account = it }
+
+        // ID 1 namespace
+        val subscriptionNamespace = client.accountNamespaceOwned(Settings.RECEIVER)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { namespace = it }
+
+        // Wait
+        waitUntilNotNull { account }
+        waitUntilNotNull { namespace }
+
+        assertNotNull(account)
+        assertNotNull(namespace)
+
+        // Release ID 1
+        subscriptionNamespace.dispose()
+
+        // Reuse ID 1 as Mosaic
+        var mosaic: Mosaic? = null
+        val subscriptionMosaic = client.accountMosaicOwned(Settings.ADDRESS)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { mosaic = it }
+
+
+        waitUntilNotNull { mosaic }
+        subscriptionMosaic.dispose()
+        subscriptionAccount.dispose()
+
+        assertNotNull(mosaic)
+
+        printModel(account)
+        printModel(namespace)
+        printModel(mosaic)
     }
 
 }

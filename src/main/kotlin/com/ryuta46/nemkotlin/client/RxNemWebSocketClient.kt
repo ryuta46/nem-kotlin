@@ -26,55 +26,111 @@ package com.ryuta46.nemkotlin.client
 
 import com.google.gson.Gson
 import com.google.gson.JsonParseException
+import com.ryuta46.nemkotlin.exceptions.NetworkException
 import com.ryuta46.nemkotlin.exceptions.ParseException
 import com.ryuta46.nemkotlin.model.*
-import com.ryuta46.nemkotlin.net.OkHttpWebSocketClient
-import com.ryuta46.nemkotlin.net.StompFrame
-import com.ryuta46.nemkotlin.net.WebSocketClient
-import com.ryuta46.nemkotlin.net.WebSocketListener
+import com.ryuta46.nemkotlin.net.*
 import com.ryuta46.nemkotlin.util.LogWrapper
 import com.ryuta46.nemkotlin.util.Logger
 import com.ryuta46.nemkotlin.util.NetworkUtils
 import com.ryuta46.nemkotlin.util.NoOutputLogger
 import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
-import io.reactivex.subjects.BehaviorSubject
+import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
+import sun.plugin.dom.exception.InvalidStateException
+import java.net.URI
 import java.net.URL
 
-class RxNemWebSocketClient(hostUrl: String,
-                           webSocketClient: WebSocketClient = OkHttpWebSocketClient(),
-                           logger: Logger = NoOutputLogger()) {
+/**
+ * NEM WebSocket client to NIS.
+ * This class returns an observable object of RxJava.
+ *
+ * @param hostUrl NIS host URL.
+ * @param webSocketClientFactory WebSocket client factory to create WebSocketClient communicating with NIS.
+ * @param logger Logging function.
+ */
+class RxNemWebSocketClient(private val hostUrl: String,
+                           private val webSocketClientFactory: WebSocketClientFactory = JavaWebSocketClient(),
+                           private val logger: Logger = NoOutputLogger()) {
 
     private val logWrapper = LogWrapper(logger, this::class.java.simpleName)
 
-    private class WebSocketController(private val hostUrl: String, private val webSocketClient: WebSocketClient, logger: Logger) : WebSocketListener {
+    // WebSocketControlTask lives while the socket is opened.
+    // Socket continues to open until there is no SUBSCRIBE path.
+    private class WebSocketControlTask(private val hostUrl: String, private val webSocketClient: WebSocketClient, logger: Logger) : WebSocketListener {
         private val logWrapper = LogWrapper(logger, RxNemWebSocketClient::class.java.simpleName)
         private val frameQueue = mutableListOf<StompFrame>()
-        private var isOpened = false
 
-        val subject: Subject<StompFrame> = BehaviorSubject.create<StompFrame>()
+        enum class State {
+            Ready,
+            Opening,
+            Opened,
+            Closing,
+            Closed
+        }
+
+        private var state = State.Ready
+
+
+        val subject: Subject<StompFrame> = PublishSubject.create()
+        private var isStreamClosed = false
+
+        private fun closeStream(e: Throwable?) {
+            synchronized(this) {
+                if (isStreamClosed) return
+                if (e != null) {
+                    subject.onError(e)
+                }
+                subject.onComplete()
+                isStreamClosed = true
+            }
+        }
 
         fun open() {
-            logWrapper.i("Opening connection to $hostUrl")
-            val url = NetworkUtils.createUrlString(hostUrl, "/w/messages/websocket", emptyMap())
-            webSocketClient.open(URL(url), this)
+            synchronized(this) {
+                if (state != State.Ready) throw InvalidStateException("Failed to open socket.")
+                logWrapper.i("Opening connection to $hostUrl")
+                val url = NetworkUtils.createUrlString(hostUrl, "/w/messages/websocket", emptyMap())
+                webSocketClient.open(URI(url), this)
+                state = State.Opening
+            }
         }
 
         fun sendFrame(frame: StompFrame) {
             synchronized(this) {
-                if (isOpened) {
-                    logWrapper.i("Sending frame: ${frame.lineDescription}")
-                    webSocketClient.send(frame.toString().toByteArray())
-                } else {
-                    logWrapper.i("Queue frame: ${frame.lineDescription}")
-                    frameQueue.add(frame)
+                when(state) {
+                    State.Opening -> {
+                        logWrapper.i("Queue frame: ${frame.lineDescription}")
+                        frameQueue.add(frame)
+                    }
+                    State.Opened -> {
+                        logWrapper.i("Sending frame: ${frame.lineDescription}")
+                        webSocketClient.send(frame.toString().toByteArray())
+                    }
+                    else -> {
+                        logWrapper.i("Ignored frame: ${frame.lineDescription}")
+                    }
                 }
             }
         }
 
+        // Graceful shutdown
         fun close() {
-            webSocketClient.close()
+            synchronized(this) {
+                state = when (state) {
+                    State.Opened -> {
+                        sendFrame(StompFrame(StompFrame.Command.Disconnect))
+                        webSocketClient.close()
+                        State.Closing
+                    }
+                    else -> {
+                        webSocketClient.close()
+                        State.Closed
+                    }
+                }
+
+            }
         }
 
         override fun onMessage(bytes: ByteArray) {
@@ -88,7 +144,7 @@ class RxNemWebSocketClient(hostUrl: String,
                         webSocketClient.send(frame.toString().toByteArray())
                     }
                     frameQueue.clear()
-                    isOpened = true
+                    state = State.Opened
                 }
             }
             subject.onNext(frame)
@@ -97,75 +153,90 @@ class RxNemWebSocketClient(hostUrl: String,
         override fun onOpen() {
             val url = URL(hostUrl)
             // Send CONNECT frame.
-            val connect = StompFrame(StompFrame.Command.Connect, mapOf("accept-version" to "1.0,1.2,2.0", "host" to url.host))
+            val connect = StompFrame(StompFrame.Command.Connect, mapOf("accept-version" to "1.0,1.2", "host" to url.host))
             logWrapper.i("Sending frame: ${connect.lineDescription}")
             webSocketClient.send(connect.toString().toByteArray())
         }
 
         override fun onClose(reason: String?) {
             logWrapper.i("Closed socket to $hostUrl. reason: $reason")
+
+            // if there is any listener after closed socket, notify error to them.
+            closeStream(NetworkException(reason))
+
             synchronized(this) {
-                frameQueue.clear()
-                isOpened = false
+                webSocketClient.close()
+                state = State.Closed
             }
         }
 
         override fun onFailure(message: String) {
             logWrapper.e("Error occurred during communication. message: $message")
+            closeStream(NetworkException(message))
         }
     }
-    private val socketController = WebSocketController(hostUrl, webSocketClient, logger)
+    private var socketControlTask: WebSocketControlTask? = null
     private val usedIds = mutableSetOf<Int>()
 
-    private inline fun <reified T : Any>subscribe(path: String, afterSubscriptionFrame: StompFrame? = null): Observable<T> {
+    private inline fun <reified T : Any>subscribe(path: String, crossinline onSubscribed: () -> Unit, afterSubscriptionFrame: StompFrame? = null): Observable<T> {
         // Create new observable object and restore.
 
         return Observable.create<T> { subscriber ->
-            var id = 0
             synchronized(this@RxNemWebSocketClient) {
-                if (usedIds.isEmpty()) {
-                    socketController.open()
+                val task = socketControlTask ?: WebSocketControlTask(hostUrl, webSocketClientFactory.create(), logger).apply {
+                    socketControlTask = this
+                    open()
                 }
                 // Search subscription ID
-                id = (0..Int.MAX_VALUE).find { !usedIds.contains(it) } ?: throw IllegalArgumentException("Too many observables.")
-                // Sending subscribe frame
-                val subscribe = StompFrame(StompFrame.Command.Subscribe, mapOf("id" to id.toString(), "destination" to path))
-                socketController.sendFrame(subscribe)
-                // If there is a frame after subscription, send it.
-                afterSubscriptionFrame?.let { socketController.sendFrame(it) }
-                usedIds.add(id)
-            }
+                val id = (0..Int.MAX_VALUE).find { !usedIds.contains(it) } ?: throw IllegalArgumentException("Too many observables.")
 
-            // Subscript received frame subject
-            val subscription = socketController.subject.subscribe { frame: StompFrame ->
-                if (frame.headers["subscription"] == id.toString()) {
-                    try {
-                        val objT = Gson().fromJson(frame.body, T::class.java)
-                        subscriber.onNext(objT)
-                    } catch (e: JsonParseException) {
-                        val message = "Failed to parse response: ${frame.body}"
-                        logWrapper.e(message)
-                        subscriber.onError(ParseException(message))
-                    }
-                }
-            }
-            subscriber.setDisposable(object : Disposable {
-                override fun dispose() {
-                    logWrapper.i("Disposing subscription")
-                    subscription.dispose()
-
-                    // Sending unsubscribe frame
-                    val unsubscribe = StompFrame(StompFrame.Command.Unsubscribe, mapOf("id" to id.toString()))
-                    socketController.sendFrame(unsubscribe)
-                    synchronized(this@RxNemWebSocketClient) {
-                        usedIds.remove(id)
-                        if (usedIds.isEmpty()) {
-                            socketController.close()
+                // Subscript received frame subject
+                val subscription = task.subject.onErrorResumeNext { e: Throwable ->
+                    subscriber.onError(e)
+                    Observable.empty()
+                }.subscribe { frame: StompFrame ->
+                    if (frame.headers["subscription"] == id.toString()) {
+                        try {
+                            val objT = Gson().fromJson(frame.body, T::class.java)
+                            subscriber.onNext(objT)
+                        } catch (e: JsonParseException) {
+                            val message = "Failed to parse response: ${frame.body}"
+                            logWrapper.e(message)
+                            subscriber.onError(ParseException(message))
                         }
                     }
                 }
-                override fun isDisposed(): Boolean = subscription.isDisposed
-            })
+
+                // Send subscribe frame
+                val subscribe = StompFrame(StompFrame.Command.Subscribe, mapOf("id" to id.toString(), "destination" to path))
+                task.sendFrame(subscribe)
+                // If there is a frame after subscription, send it.
+                afterSubscriptionFrame?.let { task.sendFrame(it) }
+
+                // subscription call back
+                onSubscribed()
+
+                usedIds.add(id)
+                subscriber.setDisposable(object : Disposable {
+                    override fun dispose() {
+                        synchronized(this@RxNemWebSocketClient) {
+                            logWrapper.i("Disposing subscription")
+                            subscription.dispose()
+
+                            // Sending unsubscribe frame
+                            val unsubscribe = StompFrame(StompFrame.Command.Unsubscribe, mapOf("id" to id.toString()))
+                            task.sendFrame(unsubscribe)
+
+                            usedIds.remove(id)
+                            if (usedIds.isEmpty()) {
+                                task.close() // Graceful shutdown
+                                socketControlTask = null
+                            }
+                        }
+                    }
+                    override fun isDisposed(): Boolean = subscription.isDisposed
+                })
+            }
         }
     }
 
@@ -175,42 +246,78 @@ class RxNemWebSocketClient(hostUrl: String,
                         "content-length" to body.length.toString()), body)
     }
 
-    fun accountGet(address: String): Observable<AccountMetaDataPair> {
-        return subscribe("/account/$address",
+    /**
+     * Gets an account information.
+     * @param address Account address.
+     */
+    fun accountGet(address: String, onSubscribed: () -> Unit = {}): Observable<AccountMetaDataPair> {
+        return subscribe("/account/$address", onSubscribed,
                 createSendFrame("/w/api/account/get", "{'account':'$address'}"))
     }
 
-    fun recentTransactions(address: String): Observable<TransactionMetaDataPairArray> {
-        return subscribe("/recenttransactions/$address",
+    /**
+     * Gets recent transactions related to the given address.
+     * @param address Account address.
+     */
+    fun recentTransactions(address: String, onSubscribed: () -> Unit = {}): Observable<TransactionMetaDataPairArray> {
+        return subscribe("/recenttransactions/$address", onSubscribed,
                 createSendFrame("/w/api/account/transfers/all", "{'account':'$address'}"))
     }
 
-    fun unconfirmed(address: String): Observable<TransactionMetaDataPair> = subscribe("/unconfirmed/$address")
+    /**
+     * Gets unconfirmed transactions related to the given address.
+     * @param address Account address.
+     */
+    // FIXME: Bridge to unconfirmed transaction data model.
+    fun unconfirmed(address: String, onSubscribed: () -> Unit = {}): Observable<TransactionMetaDataPair>
+            = subscribe("/unconfirmed/$address", onSubscribed)
 
-    fun transactions(address: String): Observable<TransactionMetaDataPair> = subscribe("/transactions/$address")
+    /**
+     * Gets confirmed transactions related to the given address.
+     */
+    fun transactions(address: String, onSubscribed: () -> Unit = {}): Observable<TransactionMetaDataPair>
+            = subscribe("/transactions/$address", onSubscribed)
 
-
-    // Cast to MosaicDefinition type
+    // To cast to MosaicDefinition type
     private data class MosaicDefinitionMapper(val mosaicDefinition: MosaicDefinition)
-    fun accountMosaicOwnedDefinition(address: String): Observable<MosaicDefinition> {
-        val bridge = subscribe<MosaicDefinitionMapper>("/account/mosaic/owned/definition/$address",
+
+    /**
+     * Gets mosaic definitions owned by the given address.
+     * @param address Owner address of mosaic definitions.
+     */
+    fun accountMosaicOwnedDefinition(address: String, onSubscribed: () -> Unit = {}): Observable<MosaicDefinition> {
+        val bridge = subscribe<MosaicDefinitionMapper>("/account/mosaic/owned/definition/$address", onSubscribed,
                 createSendFrame("/w/api/account/mosaic/owned/definition", "{'account':'$address'}"))
         return bridge.map { it.mosaicDefinition }
     }
 
-    fun accountMosaicOwned(address: String): Observable<Mosaic> {
-        return subscribe("/account/mosaic/owned/$address",
+    /**
+     * Gets mosaics owned by the given address.
+     * @param address Owner address of mosaics.
+     */
+    fun accountMosaicOwned(address: String, onSubscribed: () -> Unit = {}): Observable<Mosaic> {
+        return subscribe("/account/mosaic/owned/$address", onSubscribed,
                 createSendFrame("/w/api/account/mosaic/owned", "{'account':'$address'}"))
     }
 
-    fun accountNamespaceOwned(address: String): Observable<Namespace> {
-        return subscribe("/account/namespace/owned/$address",
+    /**
+     * Gets namespaces owned by the given address.
+     * @param address Owner address of namespaces.
+     */
+    fun accountNamespaceOwned(address: String, onSubscribed: () -> Unit = {}): Observable<Namespace> {
+        return subscribe("/account/namespace/owned/$address", onSubscribed,
                 createSendFrame("/w/api/account/namespace/owned", "{'account':'$address'}"))
     }
 
-    fun blocks(): Observable<Block> = subscribe("/blocks")
+    /**
+     * Gets the latest block information.
+     */
+    fun blocks(onSubscribed: () -> Unit = {}): Observable<Block> = subscribe("/blocks", onSubscribed)
 
-    fun blocksNew(): Observable<BlockHeight> = subscribe("/blocks/new")
+    /**
+     * Gets the new block height.
+     */
+    fun blocksNew(onSubscribed: () -> Unit = {}): Observable<BlockHeight> = subscribe("/blocks/new", onSubscribed)
 
 
 

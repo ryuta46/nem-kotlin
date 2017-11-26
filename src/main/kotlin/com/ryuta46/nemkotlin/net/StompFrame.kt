@@ -28,13 +28,21 @@ import com.ryuta46.nemkotlin.exceptions.ParseException
 
 class StompFrame(val command: Command, val headers: Map<String,String> = emptyMap(), val body: String = "") {
     enum class Command {
+        // Client -> Server frames
         Connect,
+        Send,
         Subscribe,
         Unsubscribe,
-        Send,
-
+        Begin,
+        Commit,
+        Abort,
+        Ack,
+        Nack,
+        Disconnect,
+        // Server -> Client frames
         Connected,
         Message,
+        Receipt,
         Error;
         companion object {
             @JvmStatic fun fromString(commandString: String): Command? =
