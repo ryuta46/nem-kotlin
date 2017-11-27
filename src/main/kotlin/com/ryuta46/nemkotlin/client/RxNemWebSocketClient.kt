@@ -264,13 +264,22 @@ class RxNemWebSocketClient(private val hostUrl: String,
                 createSendFrame("/w/api/account/transfers/all", "{'account':'$address'}")).map { it.data }
     }
 
+
+    // To cast to TransactionMetaDataPair
+    private data class TransactionMetaDataMapper(
+            val height: Long, // Long. Illegal height is returned 'unconfimerd' API.
+            val id: Int, val hash: TransactionHash)
+    private data class TransactionMetaDataPairMapper( val meta: TransactionMetaDataMapper, val transaction: Transaction)
+
     /**
      * Gets unconfirmed transactions related to the given address.
      * @param address Account address.
      */
-    // FIXME: Bridge to unconfirmed transaction data model.
-    fun unconfirmed(address: String, onSubscribed: () -> Unit = {}): Observable<TransactionMetaDataPair>
-            = subscribe("/unconfirmed/$address", onSubscribed)
+    fun unconfirmed(address: String, onSubscribed: () -> Unit = {}): Observable<TransactionMetaDataPair> {
+        return subscribe<TransactionMetaDataPairMapper>("/unconfirmed/$address", onSubscribed).map {
+            TransactionMetaDataPair(TransactionMetaData(0, it.meta.id, it.meta.hash), it.transaction)
+        }
+    }
 
     /**
      * Gets confirmed transactions related to the given address.
