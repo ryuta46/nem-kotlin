@@ -35,7 +35,7 @@ import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 
 
-class OkHttpWebSocketClient : WebSocketClient, WebSocketClientFactory {
+internal class OkHttpWebSocketClient : WebSocketClient, WebSocketClientFactory {
     private val client = //OkHttpClient()
             OkHttpClient.Builder()
                     .readTimeout(3, TimeUnit.SECONDS)

@@ -23,13 +23,29 @@
  */
 package com.ryuta46.nemkotlin.net
 
-import java.net.URL
-
+/**
+ * Event listener for WebSocket communication.
+ */
 interface WebSocketListener {
-    fun onMessage(bytes: ByteArray)
+    /**
+     * Called when the connection has opened.
+     */
     fun onOpen()
-    fun onClose(reason: String?)
-    fun onFailure(message: String)
+    /**
+     * Called when a message has arrived from the peer.
+     * @param bytes The received message.
+     */
+    fun onMessage(bytes: ByteArray)
 
+    /**
+     * Called when the connection has closed.
+     */
+    fun onClose(reason: String?)
+
+    /**
+     * Called when an error has occurred.
+     * @param message Error description.
+     */
+    fun onFailure(message: String)
 }
 

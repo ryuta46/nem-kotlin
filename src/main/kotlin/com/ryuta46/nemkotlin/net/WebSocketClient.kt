@@ -25,11 +25,30 @@
 package com.ryuta46.nemkotlin.net
 
 import java.net.URI
-import java.net.URL
+import com.ryuta46.nemkotlin.exceptions.NetworkException
 
+/**
+ * WebSocket interface to access to NIS.
+ */
 interface WebSocketClient {
+    /**
+     * Opens connection to given URI.
+     * @param uri Destination URI.
+     * @param listener Event listener.
+     * @throws NetworkException if connecting to the uri is failed.
+     */
     fun open(uri: URI, listener: WebSocketListener)
+
+    /**
+     * Sends bytes to opened socket.
+     * @param bytes Bytes to be sent.
+     * @throws NetworkException if sending bytes is failed.
+     */
     fun send(bytes: ByteArray)
+
+    /**
+     * Closes the socket.
+     */
     fun close()
 }
 
