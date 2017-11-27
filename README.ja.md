@@ -41,7 +41,9 @@ nem-kotlin は gson と spongy castle、eddsa ライブラリに依存してい�
 
 また、Reactive なクライアントを使う場合は、RxJava も必要です。
 
-これら依存ライブラリをセットアップ方法は下記の通り。
+WebSocket を利用する場合は、RxJava と Java-WebSocket が必要です。
+
+これら依存ライブラリをセットアップする方法は下記の通り。
 
 gradle を使う場合:
 
@@ -51,9 +53,12 @@ implementation 'com.madgag.spongycastle:core:1.51.0.0'
 implementation 'net.i2p.crypto:eddsa:0.2.0'
 implementation 'com.google.code.gson:gson:2.8.2'
 
-// for reactive client users
+// for reactive client or WebSocket client users
 implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
 implementation 'io.reactivex.rxjava2:rxkotlin:2.1.0'
+
+// for WebSocket client users
+implementation 'org.java-websocket:Java-WebSocket:1.3.6'
 ```
 
 maven を使う場合:
@@ -88,6 +93,11 @@ maven を使う場合:
   <groupId>io.reactivex.rxjava2</groupId>
   <artifactId>rxkotlin</artifactId>
   <version>2.1.0</version>
+</dependency>
+<dependency>
+  <groupId>org.java-websocket</groupId>
+  <artifactId>Java-WebSocket</artifactId>
+  <version>1.3.6</version>
 </dependency>
 ```
 
@@ -209,6 +219,36 @@ val client = NemApiClient("http://62.75.251.134:7890", yourHttpClient, yourLogge
 
 標準出力にログを出力する 'StandardOutputLogger' を使うことも出来ます。
 
+
+### WebSocket クライアントの使い方
+
+WebSocket クライアントを使うことができます。
+
+```kotlin
+val wsClient = RxNemWebSocketClient("http://62.75.251.134:7778")
+```
+
+WebSocket クライアントでは、各 API に対応した Observable を返します。
+
+各 API に対応した情報が更新される度に、Observable を通して通知が行われます。
+
+例) モザイクの保有量が変わる度に、モザイク保有量を表示
+```kotlin
+val subscription = wsClient.accountMosaicOwned(address)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { mosaic: Mosaic ->
+                    print(Gson().toJson(mosaic))
+                }
+```
+
+**通知が必要なくなったら必ず dispose を呼び出してください。**
+
+自動的に通知が完了するということはありません。
+
+```kotlin
+// Do not forget to dispose the subscription after you don't need to observe it.
+subscription.dispose()
+```
 
 ## 開発者
 

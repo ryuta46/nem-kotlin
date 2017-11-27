@@ -23,8 +23,10 @@
  */
 package com.ryuta46.nemkotlin.model
 
+import com.ryuta46.nemkotlin.transaction.MosaicAttachment
+
 /**
- * @property timestamp The number of seconds elapsed since the creation of the nemesis block.
+ * @property timeStamp The number of seconds elapsed since the creation of the nemesis block.
  * @property signature The transaction signature.
  * @property fee The fee for the transaction.
  * @property type The transaction type.
@@ -33,12 +35,17 @@ package com.ryuta46.nemkotlin.model
  * @property signer The public key of the account that created the transaction.
  */
 data class Transaction(
-        val timestamp: Int,
+        val timeStamp: Int,
         val signature: String,
         val fee: Long,
         val type: Int,
         val deadline: Int,
         val version: Int,
-        val signer: String
+        val signer: String,
 
+        // for Transfer transaction
+        val amount: Long,
+        val recipient: String,
+        val mosaics: List<Mosaic>,
+        val message: Message
 )

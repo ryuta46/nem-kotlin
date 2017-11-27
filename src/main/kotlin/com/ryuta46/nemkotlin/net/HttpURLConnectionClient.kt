@@ -50,10 +50,7 @@ class HttpURLConnectionClient : HttpClient {
 
 
             val status = connection.responseCode
-            if (status != HttpURLConnection.HTTP_OK) {
-                return HttpResponse(status, "")
-            }
-            val inputStream = connection.inputStream
+            val inputStream = if (status == HttpURLConnection.HTTP_OK) connection.inputStream else connection.errorStream
             val encoding = connection.contentEncoding ?: "UTF-8"
 
             var body = ""

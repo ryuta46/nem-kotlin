@@ -23,6 +23,7 @@
  */
 package com.ryuta46.nemkotlin.client
 
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.ryuta46.nemkotlin.Settings
 import com.ryuta46.nemkotlin.account.AccountGenerator
@@ -45,14 +46,6 @@ import org.junit.runner.RunWith
 @RunWith(Theories::class)
 class NemApiClientTest {
     companion object {
-        @DataPoints @JvmStatic fun getCreateUrlStringFixtures() = arrayOf(
-                CreateUrlStringFixture("", emptyMap(), Settings.TEST_HOST),
-                CreateUrlStringFixture("/path", emptyMap(), Settings.TEST_HOST + "/path"),
-                CreateUrlStringFixture("/path", mapOf("qu" to "val"), Settings.TEST_HOST + "/path?qu=val"),
-
-                CreateUrlStringFixture("/path", mapOf("k1" to "v1", "k2" to "v2"), Settings.TEST_HOST + "/path?k1=v1&k2=v2")
-        )
-
         @DataPoints @JvmStatic fun getTransferAnnounceFixture() = arrayOf(
                 TransferAnnounceFixture(1, "", emptyList()),
                 TransferAnnounceFixture(0, "test", emptyList()),
@@ -68,22 +61,12 @@ class NemApiClientTest {
 
 
     private fun <T>printModel(model: T) {
-        val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
+        //val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
+        val jsonString = Gson().toJson(model)
         println(jsonString)
     }
 
-    data class CreateUrlStringFixture(val path: String, val queries: Map<String, String>, val expected: String)
-
-    @Theory
-    fun createUrlString(fixture: CreateUrlStringFixture) {
-        val actual = client.createUrlString(fixture.path, fixture.queries)
-        println(actual)
-        assertEquals(fixture.expected, actual)
-    }
-
-
-    @Test
-    fun get() {
+    @Test fun get() {
         val accountMetaDataPair: AccountMetaDataPair = client.get("/account/get",mapOf("address" to Settings.ADDRESS))
 
         assertEquals(accountMetaDataPair.account.publicKey, Settings.PUBLIC_KEY)
@@ -106,6 +89,22 @@ class NemApiClientTest {
     }
     */
 
+    @Test fun heartbeat() {
+        val result = client.heartbeat()
+        assertEquals(1, result.code)
+        assertEquals(2, result.type)
+        assertEquals("ok", result.message)
+        printModel(result)
+    }
+
+    @Test fun status() {
+        val result = client.status()
+        assertEquals(6, result.code)
+        assertEquals(4, result.type)
+        assertEquals("status", result.message)
+        printModel(result)
+    }
+
     @Test fun accountGet() {
         val accountMetaDataPair = client.accountGet(Settings.ADDRESS)
         printModel(accountMetaDataPair)
@@ -122,16 +121,139 @@ class NemApiClientTest {
         assertEquals(accountMetaDataPair.account.address, Settings.ADDRESS)
     }
 
+
+    @Test fun accountGetForwarded() {
+        // API Document sample request.
+        val result = mainClient.accountGetForwarded("NC2ZQKEFQIL3JZEOB2OZPWXWPOR6LKYHIROCR7PK")
+        printModel(result)
+        assertEquals("NALICE2A73DLYTP4365GNFCURAUP3XVBFO7YNYOW", result.account.address)
+    }
+    @Test fun accountGetForwardedMyself() {
+        val result = client.accountGetForwarded(Settings.ADDRESS)
+        printModel(result)
+        assertEquals(result.account.address, Settings.ADDRESS)
+    }
+
+    @Test fun accountGetForwardedFromPublicKey() {
+        val result = mainClient.accountGetForwardedFromPublicKey("bdd8dd702acb3d88daf188be8d6d9c54b3a29a32561a068b25d2261b2b2b7f02")
+        printModel(result)
+        assertEquals("NALICE2A73DLYTP4365GNFCURAUP3XVBFO7YNYOW", result.account.address)
+    }
+
+    @Test fun accountGetForwardedFromPublicKeyMyself() {
+        val result = client.accountGetForwardedFromPublicKey(Settings.PUBLIC_KEY)
+        printModel(result)
+        assertEquals(result.account.address, Settings.ADDRESS)
+    }
+
+    @Test fun accountStatus() {
+        val result = client.accountStatus(Settings.ADDRESS)
+        printModel(result)
+
+        assertEquals("LOCKED", result.status)
+        assertEquals("INACTIVE", result.remoteStatus)
+        assertTrue(result.cosignatoryOf.isEmpty())
+        assertTrue(result.cosignatories.isEmpty())
+    }
+
+    @Test fun accountTransfersIncoming() {
+        val result = client.accountTransfersIncoming(Settings.ADDRESS)
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertEquals(Settings.ADDRESS, it.transaction.recipient)
+        }
+    }
+
+    @Test fun accountTransfersOutgoing() {
+        val result = client.accountTransfersOutgoing(Settings.ADDRESS)
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertEquals(Settings.PUBLIC_KEY, it.transaction.signer)
+        }
+    }
+
+    @Test fun accountTransfersAll() {
+        val result = client.accountTransfersAll(Settings.ADDRESS)
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertTrue(Settings.PUBLIC_KEY == it.transaction.signer || Settings.ADDRESS == it.transaction.recipient)
+        }
+
+    }
+
+    @Test fun accountUnconfirmedTransactions() {
+        transactionAnnounce(getTransferAnnounceFixture()[2])
+        val result = client.accountUnconfirmedTransactions(Settings.ADDRESS)
+        printModel(result)
+
+        if (Settings.PRIVATE_KEY.isEmpty()) {
+            assertTrue(result.isEmpty())
+        } else {
+            assertTrue(result.isNotEmpty())
+            result.forEach {
+                assertEquals(Settings.PUBLIC_KEY, it.transaction.signer)
+
+            }
+        }
+    }
+
+    @Test fun accountHarvests() {
+        val result = client.accountHarvests(Settings.ADDRESS)
+        printModel(result)
+        assertTrue(result.isEmpty())
+    }
+
+
+    @Test fun accountImportances() {
+        val result = client.accountImportances()
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertTrue(it.address.isNotEmpty())
+        }
+    }
+
+
+    @Test fun accountNamespacePage() {
+        val result = client.accountNamespacePage(Settings.RECEIVER)
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertEquals(Settings.RECEIVER, it.owner)
+        }
+    }
+
+    @Test fun accountNamespacePageInvalidParent() {
+        val result = client.accountNamespacePage(Settings.RECEIVER, "ttech")
+        printModel(result)
+        assertTrue(result.isEmpty())
+    }
+
     @Test fun accountMosaicOwned() {
         val mosaicArray = client.accountMosaicOwned(Settings.ADDRESS)
         printModel(mosaicArray)
-        assertTrue(mosaicArray.data.isNotEmpty())
+        assertTrue(mosaicArray.isNotEmpty())
+    }
+
+    // Account historiacal get does not support in the NIS.
+    @Test(expected = NetworkException::class)
+    fun accountHistoricalGet() {
+        val result = client.accountHistoricalGet(Settings.ADDRESS, 0, 0,1)
+        printModel(result)
     }
 
     @Test fun namespaceMosaicDefinitionPage(){
         val mosaicDefinitionArray = mainClient.namespaceMosaicDefinitionPage("ttech")
         printModel(mosaicDefinitionArray)
-        assertTrue(mosaicDefinitionArray.data.isNotEmpty())
+        assertTrue(mosaicDefinitionArray.isNotEmpty())
     }
 
     @Test fun namespaceMosaicDefinitionFromName(){

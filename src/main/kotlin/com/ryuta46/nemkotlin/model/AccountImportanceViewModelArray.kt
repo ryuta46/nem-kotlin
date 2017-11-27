@@ -24,14 +24,9 @@
 package com.ryuta46.nemkotlin.model
 
 /**
- * Transactions meta data object contains additional information about the transaction.
+ * An array of AccountImportanceViewModel.
  *
- * @property height The height of the block in which the transaction was included.
- * @property id The id of the transaction.
- * @property hash The hash of the transaction.
+ * @property data AccountImportanceViewModel array
  */
-data class TransactionMetaData(
-        val height: Int,
-        val id: Int,
-        val hash: TransactionHash
-)
+data class AccountImportanceViewModelArray(val data: List<AccountImportanceViewModel>)
+

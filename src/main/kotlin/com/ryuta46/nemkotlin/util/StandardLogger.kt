@@ -24,16 +24,26 @@
 
 package com.ryuta46.nemkotlin.util
 
+import java.text.SimpleDateFormat
+import java.util.*
+
 /**
  * Logger to output standard output.
  */
 class StandardLogger(var level: Logger.Level = Logger.Level.Verbose) : Logger {
+    companion object {
+        private val FORMATTER = SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS")
+    }
     override fun log(level: Logger.Level, message: String) {
+
         if (level.rawValue <= this.level.rawValue) {
+            val levelId = level.name.first().toUpperCase()
+            val dateString = FORMATTER.format(Date())
+            val fullMessage = "|$dateString|$levelId|$message"
             if (level.rawValue <= Logger.Level.Error.rawValue) {
-                System.err.println(message)
+                System.err.println(fullMessage)
             } else {
-                println(message)
+                println(fullMessage)
             }
         }
     }

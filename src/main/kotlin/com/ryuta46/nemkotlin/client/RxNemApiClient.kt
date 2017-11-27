@@ -74,6 +74,20 @@ class RxNemApiClient(hostUrl: String,
     inline fun <R, reified S : Any>post(path: String, body: R, query: Map<String, String> = emptyMap()): Observable<S> =
             observe { syncClient.post<R, S>(path, body, query) }
 
+
+
+    /**
+     * @see NemApiClient.heartbeat
+     */
+    fun heartbeat(): Observable<NemRequestResult> =
+            observe { syncClient.heartbeat() }
+
+    /**
+     * @see NemApiClient.status
+     */
+    fun status(): Observable<NemRequestResult> =
+            observe { syncClient.status() }
+
     /**
      * @see NemApiClient.accountGet
      */
@@ -87,15 +101,81 @@ class RxNemApiClient(hostUrl: String,
             observe { syncClient.accountGetFromPublicKey(publicKey) }
 
     /**
+     * @see NemApiClient.accountGetForwarded
+     */
+    fun accountGetForwarded(address: String): Observable<AccountMetaDataPair> =
+            observe { syncClient.accountGetForwarded(address) }
+
+    /**
+     * @see NemApiClient.accountGetForwardedFromPublicKey
+     */
+    fun accountGetForwardedFromPublicKey(publicKey: String): Observable<AccountMetaDataPair> =
+            observe { syncClient.accountGetFromPublicKey(publicKey) }
+
+    /**
+     * @see NemApiClient.accountStatus
+     */
+    fun accountStatus(address: String): Observable<AccountMetaData> =
+            observe { syncClient.accountStatus(address) }
+
+    /**
+     * @see NemApiClient.accountTransfersIncoming
+     */
+    fun accountTransfersIncoming(address: String, hash: String = "", id: Int = -1): Observable<List<TransactionMetaDataPair>> =
+            observe { syncClient.accountTransfersIncoming(address, hash, id) }
+
+    /**
+     * @see NemApiClient.accountTransfersOutgoing
+     */
+    fun accountTransfersOutgoing(address: String, hash: String = "", id: Int = -1): Observable<List<TransactionMetaDataPair>> =
+            observe { syncClient.accountTransfersOutgoing(address, hash, id) }
+
+    /**
+     * @see NemApiClient.accountTransfersAll
+     */
+    fun accountTransfersAll(address: String, hash: String = "", id: Int = -1): Observable<List<TransactionMetaDataPair>> =
+            observe { syncClient.accountTransfersAll(address, hash, id) }
+
+    /**
+     * @see NemApiClient.accountUnconfirmedTransactions
+     */
+    fun accountUnconfirmedTransactions(address: String): Observable<List<UnconfirmedTransactionMetaDataPair>> =
+            observe { syncClient.accountUnconfirmedTransactions(address) }
+
+    /**
+     * @see NemApiClient.accountHarvests
+     */
+    fun accountHarvests(address: String): Observable<List<HarvestInfo>> =
+            observe { syncClient.accountHarvests(address) }
+
+    /**
+     * @see NemApiClient.accountImportances
+     */
+    fun accountImportances(): Observable<List<AccountImportanceViewModel>> =
+            observe { syncClient.accountImportances() }
+
+    /**
+     * @see NemApiClient.accountNamespacePage
+     */
+    fun accountNamespacePage(address: String, parent: String = "", id: Int = -1, pageSize: Int = -1): Observable<List<Namespace>> =
+            observe { syncClient.accountNamespacePage(address, parent, id) }
+
+    /**
      * @see NemApiClient.accountMosaicOwned
      */
-    fun accountMosaicOwned(address: String): Observable<MosaicArray> =
+    fun accountMosaicOwned(address: String): Observable<List<Mosaic>> =
             observe { syncClient.accountMosaicOwned(address) }
+
+    /**
+     * @see NemApiClient.accountHistoricalGet
+     */
+    fun accountHistoricalGet(address: String, startHeight: Int, endHeight: Int, increment: Int): Observable<List<AccountHistoricalDataViewModel>> =
+            observe { syncClient.accountHistoricalGet(address, startHeight, endHeight, increment) }
 
     /**
      * @see NemApiClient.namespaceMosaicDefinitionPage
      */
-    fun namespaceMosaicDefinitionPage(namespace: String, id: Int = -1, pageSize: Int = -1): Observable<MosaicDefinitionMetaDataPairArray> =
+    fun namespaceMosaicDefinitionPage(namespace: String, id: Int = -1, pageSize: Int = -1): Observable<List<MosaicDefinitionMetaDataPair>> =
             observe { syncClient.namespaceMosaicDefinitionPage(namespace, id, pageSize) }
 
     /**
