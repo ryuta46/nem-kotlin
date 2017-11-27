@@ -259,9 +259,9 @@ class RxNemWebSocketClient(private val hostUrl: String,
      * Gets recent transactions related to the given address.
      * @param address Account address.
      */
-    fun recentTransactions(address: String, onSubscribed: () -> Unit = {}): Observable<TransactionMetaDataPairArray> {
-        return subscribe("/recenttransactions/$address", onSubscribed,
-                createSendFrame("/w/api/account/transfers/all", "{'account':'$address'}"))
+    fun recentTransactions(address: String, onSubscribed: () -> Unit = {}): Observable<List<TransactionMetaDataPair>> {
+        return subscribe<TransactionMetaDataPairArray>("/recenttransactions/$address", onSubscribed,
+                createSendFrame("/w/api/account/transfers/all", "{'account':'$address'}")).map { it.data }
     }
 
     /**

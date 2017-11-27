@@ -24,8 +24,11 @@
 
 package com.ryuta46.nemkotlin.client
 
+import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.ryuta46.nemkotlin.Settings
+import com.ryuta46.nemkotlin.TestUtils
+import com.ryuta46.nemkotlin.TestUtils.Companion.waitUntilNotNull
 import com.ryuta46.nemkotlin.account.AccountGenerator
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.exceptions.NetworkException
@@ -59,7 +62,8 @@ class RxNemApiClientTest {
 
 
     private fun <T>printModel(model: T) {
-        val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
+        //val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
+        val jsonString = Gson().toJson(model)
         println(jsonString)
     }
 
@@ -115,6 +119,22 @@ class RxNemApiClientTest {
         assertEquals(NetworkException::class, errors[0]::class)
     }
 
+    @Test fun heartbeat() {
+        val result = client.heartbeat().blockingFirst()
+        assertEquals(1, result.code)
+        assertEquals(2, result.type)
+        assertEquals("ok", result.message)
+        printModel(result)
+    }
+
+    @Test fun status() {
+        val result = client.status().blockingFirst()
+        assertEquals(6, result.code)
+        assertEquals(4, result.type)
+        assertEquals("status", result.message)
+        printModel(result)
+    }
+
 
     @Test fun accountGet() {
         val accountMetaDataPair = client.accountGet(Settings.ADDRESS).blockingFirst()
@@ -134,17 +154,149 @@ class RxNemApiClientTest {
     }
 
 
+    @Test fun accountGetForwarded() {
+        // API Document sample request.
+        val result = mainClient.accountGetForwarded("NC2ZQKEFQIL3JZEOB2OZPWXWPOR6LKYHIROCR7PK").blockingFirst()
+        printModel(result)
+        assertEquals("NALICE2A73DLYTP4365GNFCURAUP3XVBFO7YNYOW", result.account.address)
+    }
+    @Test fun accountGetForwardedMyself() {
+        val result = client.accountGetForwarded(Settings.ADDRESS).blockingFirst()
+        printModel(result)
+        assertEquals(result.account.address, Settings.ADDRESS)
+    }
+
+    @Test fun accountGetForwardedFromPublicKey() {
+        val result = mainClient.accountGetForwardedFromPublicKey("bdd8dd702acb3d88daf188be8d6d9c54b3a29a32561a068b25d2261b2b2b7f02").blockingFirst()
+        printModel(result)
+        assertEquals("NALICE2A73DLYTP4365GNFCURAUP3XVBFO7YNYOW", result.account.address)
+    }
+
+    @Test fun accountGetForwardedFromPublicKeyMyself() {
+        val result = client.accountGetForwardedFromPublicKey(Settings.PUBLIC_KEY).blockingFirst()
+        printModel(result)
+        assertEquals(result.account.address, Settings.ADDRESS)
+    }
+
+    @Test fun accountStatus() {
+        val result = client.accountStatus(Settings.ADDRESS).blockingFirst()
+        printModel(result)
+
+        assertEquals("LOCKED", result.status)
+        assertEquals("INACTIVE", result.remoteStatus)
+        assertTrue(result.cosignatoryOf.isEmpty())
+        assertTrue(result.cosignatories.isEmpty())
+    }
+
+    @Test fun accountTransfersIncoming() {
+        val result = client.accountTransfersIncoming(Settings.ADDRESS).blockingFirst()
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertEquals(Settings.ADDRESS, it.transaction.recipient)
+        }
+    }
+
+    @Test fun accountTransfersOutgoing() {
+        val result = client.accountTransfersOutgoing(Settings.ADDRESS).blockingFirst()
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertEquals(Settings.PUBLIC_KEY, it.transaction.signer)
+        }
+    }
+
+    @Test fun accountTransfersAll() {
+        val result = client.accountTransfersAll(Settings.ADDRESS).blockingFirst()
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertTrue(Settings.PUBLIC_KEY == it.transaction.signer || Settings.ADDRESS == it.transaction.recipient)
+        }
+
+    }
+
+    @Test fun accountUnconfirmedTransactions() {
+        transactionAnnounce(getTransferAnnounceFixture()[2])
+        val result = client.accountUnconfirmedTransactions(Settings.ADDRESS).blockingFirst()
+        printModel(result)
+
+        if (Settings.PRIVATE_KEY.isEmpty()) {
+            assertTrue(result.isEmpty())
+        } else {
+            assertTrue(result.isNotEmpty())
+            result.forEach {
+                assertEquals(Settings.PUBLIC_KEY, it.transaction.signer)
+
+            }
+        }
+    }
+
+    @Test fun accountHarvests() {
+        val result = client.accountHarvests(Settings.ADDRESS).blockingFirst()
+        printModel(result)
+        assertTrue(result.isEmpty())
+    }
+
+
+    @Test fun accountImportances() {
+        val result = client.accountImportances().blockingFirst()
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertTrue(it.address.isNotEmpty())
+        }
+    }
+
+
+    @Test fun accountNamespacePage() {
+        val result = client.accountNamespacePage(Settings.RECEIVER).blockingFirst()
+        printModel(result)
+
+        assertTrue(result.isNotEmpty())
+        result.forEach {
+            assertEquals(Settings.RECEIVER, it.owner)
+        }
+    }
+
+    @Test fun accountNamespacePageInvalidParent() {
+        val result = client.accountNamespacePage(Settings.RECEIVER, "ttech").blockingFirst()
+        printModel(result)
+        assertTrue(result.isEmpty())
+    }
+
+
     @Test fun accountMosaicOwned() {
         val mosaicArray = client.accountMosaicOwned(Settings.ADDRESS).blockingFirst()
         printModel(mosaicArray)
-        assertTrue(mosaicArray.data.isNotEmpty())
+        assertTrue(mosaicArray.isNotEmpty())
     }
 
+    // Account historiacal get does not support in the NIS.
+    @Test fun accountHistoricalGet() {
+        var err: Throwable? = null
+        val result = client.accountHistoricalGet(Settings.ADDRESS, 0, 0,1)
+                .onErrorResumeNext{e: Throwable ->
+                    err = e
+                    Observable.empty()
+                }
+                .subscribe{}
+
+        waitUntilNotNull { err }
+
+        assertTrue(err is NetworkException)
+
+        printModel(result)
+    }
 
     @Test fun namespaceMosaicDefinitionPage(){
         val mosaicDefinitionArray = mainClient.namespaceMosaicDefinitionPage("ttech").blockingFirst()
         printModel(mosaicDefinitionArray)
-        assertTrue(mosaicDefinitionArray.data.isNotEmpty())
+        assertTrue(mosaicDefinitionArray.isNotEmpty())
     }
 
     @Test fun namespaceMosaicDefinitionFromName(){

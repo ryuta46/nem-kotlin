@@ -26,6 +26,7 @@ package com.ryuta46.nemkotlin.client
 
 import com.google.gson.Gson
 import com.ryuta46.nemkotlin.Settings
+import com.ryuta46.nemkotlin.TestUtils.Companion.waitUntilNotNull
 import com.ryuta46.nemkotlin.account.AccountGenerator
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.exceptions.NetworkException
@@ -51,13 +52,6 @@ class RxNemWebSocketClientTest {
     private val client = RxNemWebSocketClient(Settings.TEST_WEB_SOCKET, logger = StandardLogger())
     private val syncClient = NemApiClient(Settings.TEST_HOST, logger = StandardLogger())
     //private val client = RxNemWebSocketClient("http://62.75.251.134:7778", logger = StandardLogger())
-
-    private fun <T>waitUntilNotNull(timeout: Int = 30 * 1000, body: () -> T) {
-        for(i in 0 until timeout / 10) {
-            if (body() != null) return
-            Thread.sleep(10)
-        }
-    }
 
     private fun transactionAnnounceMosaic(): String {
         if (Settings.PRIVATE_KEY.isEmpty()) {
@@ -93,7 +87,7 @@ class RxNemWebSocketClientTest {
     }
 
     @Test fun recentTransactions(){
-        var result: TransactionMetaDataPairArray? = null
+        var result: List<TransactionMetaDataPair>? = null
         val subscription = client.recentTransactions(Settings.ADDRESS)
                 .subscribeOn(Schedulers.newThread())
                 .subscribe { result = it }
