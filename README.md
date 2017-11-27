@@ -22,7 +22,7 @@ Download the latest jar
 for gradle users: (If you use gradle versioned 2.x, specify 'compile' instead of 'implmentaion')
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.1.0'
+implementation 'com.ryuta46:nem-kotlin:0.2.0'
 ```
 
 
@@ -34,7 +34,7 @@ for maven users:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
 </dependency>
 ```
 
@@ -42,7 +42,9 @@ for maven users:
 
 nem-kotlin depends gson, spongy castle and eddsa library.
 
-If you want use reactive client, download RxJava too.
+If you want to use reactive client, download RxJava too.
+
+If you want to use WebSocket client, download RxJava and Java-WebSocket too.
 
 To use nem-kotlin, download them
 
@@ -54,9 +56,12 @@ implementation 'com.madgag.spongycastle:core:1.51.0.0'
 implementation 'net.i2p.crypto:eddsa:0.2.0'
 implementation 'com.google.code.gson:gson:2.8.2'
 
-// for reactive client users
+// for reactive client or WebSocket client users
 implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
 implementation 'io.reactivex.rxjava2:rxkotlin:2.1.0'
+
+// for WebSocket client users
+implementation 'org.java-websocket:Java-WebSocket:1.3.6'
 ```
 
 for maven users:
@@ -91,6 +96,11 @@ for maven users:
   <groupId>io.reactivex.rxjava2</groupId>
   <artifactId>rxkotlin</artifactId>
   <version>2.1.0</version>
+</dependency>
+<dependency>
+  <groupId>org.java-websocket</groupId>
+  <artifactId>Java-WebSocket</artifactId>
+  <version>1.3.6</version>
 </dependency>
 ```
 
@@ -209,6 +219,36 @@ The default logger is 'NoOutputLogger' which outputs nothing.
 
 You can also use 'StandardOutputLogger' which output log to standard output.
 
+
+### How to use WebSocket client
+
+You can use WebSocket client.
+
+```kotlin
+val wsClient = RxNemWebSocketClient("http://62.75.251.134:7778")
+```
+
+WebSocket client returns Observable object with each APIs.
+
+The Information corresponding to each API is notified through the observable each time the information has changed.
+
+e.g. Printing owned mosaic information each time the amount of owned mosaic has changed.
+```kotlin
+val subscription = wsClient.accountMosaicOwned(address)
+                .subscribeOn(Schedulers.newThread())
+                .subscribe { mosaic: Mosaic ->
+                    print(Gson().toJson(mosaic))
+                }
+```
+
+**Note that you MUST dispose the subscription after you don't need to observe it.**
+
+The subscription is NOT completed automatically.
+
+```kotlin
+// Do not forget to dispose the subscription after you don't need to observe it.
+subscription.dispose()
+```
 
 ## Author
 
