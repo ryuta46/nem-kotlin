@@ -47,6 +47,13 @@ interface WebSocketClient {
     fun send(bytes: ByteArray)
 
     /**
+     * Sends text to opened socket.
+     * @param text Text to be sent.
+     * @throws NetworkException if sending bytes is failed.
+     */
+    fun send(text: String)
+
+    /**
      * Closes the socket.
      */
     fun close()

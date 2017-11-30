@@ -32,10 +32,16 @@ interface WebSocketListener {
      */
     fun onOpen()
     /**
-     * Called when a message has arrived from the peer.
+     * Called when a binary message has arrived from the peer.
      * @param bytes The received message.
      */
     fun onMessage(bytes: ByteArray)
+
+    /**
+     * Called when a text message has arrived from the peer.
+     * @param text The received message.
+     */
+    fun onMessage(text: String)
 
     /**
      * Called when the connection has closed.

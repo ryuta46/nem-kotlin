@@ -41,6 +41,7 @@ import io.reactivex.subjects.Subject
 import sun.plugin.dom.exception.InvalidStateException
 import java.net.URI
 import java.net.URL
+import java.security.SecureRandom
 
 /**
  * NEM WebSocket client to NIS.
@@ -60,7 +61,9 @@ class RxNemWebSocketClient(private val hostUrl: String,
     // Socket continues to open until there is no SUBSCRIBE path.
     private class WebSocketControlTask(private val hostUrl: String, private val webSocketClient: WebSocketClient, logger: Logger) : WebSocketListener {
         private val logWrapper = LogWrapper(logger, RxNemWebSocketClient::class.java.simpleName)
-        private val frameQueue = mutableListOf<StompFrame>()
+
+        data class FrameQueueEntry(val frame: StompFrame, val onSubscribed:()->Unit)
+        private val frameQueue = mutableListOf<FrameQueueEntry>()
 
         enum class State {
             Ready,
@@ -91,22 +94,34 @@ class RxNemWebSocketClient(private val hostUrl: String,
             synchronized(this) {
                 if (state != State.Ready) throw InvalidStateException("Failed to open socket.")
                 logWrapper.i("Opening connection to $hostUrl")
-                val url = NetworkUtils.createUrlString(hostUrl, "/w/messages/websocket", emptyMap())
+
+                val random = SecureRandom()
+                val randomServerAddress = random.nextInt(10000).toString()
+                val randomSessionId = (1..8).map {
+                    val raw = random.nextInt(10 + 26)
+                    if (raw < 10) '0' + raw else 'a' + raw - 10
+                }.joinToString(separator = "") { it.toString() }
+
+                //val path = "/w/messages/$randomServerAddress/$randomSessionId/websocket"
+                val path = "/w/messages/websocket"
+                logWrapper.i("Request path: $path")
+                val url = NetworkUtils.createUrlString(hostUrl, path , emptyMap())
                 webSocketClient.open(URI(url), this)
                 state = State.Opening
             }
         }
 
-        fun sendFrame(frame: StompFrame) {
+        fun sendFrame(frame: StompFrame, onSubscribed: () -> Unit = {}) {
             synchronized(this) {
                 when(state) {
                     State.Opening -> {
                         logWrapper.i("Queue frame: ${frame.lineDescription}")
-                        frameQueue.add(frame)
+                        frameQueue.add(FrameQueueEntry(frame, onSubscribed))
                     }
                     State.Opened -> {
                         logWrapper.i("Sending frame: ${frame.lineDescription}")
-                        webSocketClient.send(frame.toString().toByteArray())
+                        webSocketClient.send(frame.toString())
+                        onSubscribed()
                     }
                     else -> {
                         logWrapper.i("Ignored frame: ${frame.lineDescription}")
@@ -134,14 +149,26 @@ class RxNemWebSocketClient(private val hostUrl: String,
         }
 
         override fun onMessage(bytes: ByteArray) {
-            val frame = StompFrame.parse(String(bytes))
+            onMessage(String(bytes))
+        }
+
+        override fun onMessage(text: String) {
+            logWrapper.i("Received raw bytes: $text")
+            val frame = try {
+                StompFrame.parse(text)
+            } catch (e: ParseException) {
+                logWrapper.e("Failed to parse stomp frame: ${e.message}")
+                return
+            }
             logWrapper.i("Received frame: ${frame.lineDescription}")
             if (frame.command == StompFrame.Command.Connected) {
                 synchronized(this) {
                     // Send queued frames.
-                    frameQueue.forEach { frame ->
+                    frameQueue.forEach { frameQueue ->
+                        val frame = frameQueue.frame
                         logWrapper.i("Sending queued frame: ${frame.lineDescription}")
-                        webSocketClient.send(frame.toString().toByteArray())
+                        webSocketClient.send(frame.toString())
+                        frameQueue.onSubscribed()
                     }
                     frameQueue.clear()
                     state = State.Opened
@@ -153,9 +180,9 @@ class RxNemWebSocketClient(private val hostUrl: String,
         override fun onOpen() {
             val url = URL(hostUrl)
             // Send CONNECT frame.
-            val connect = StompFrame(StompFrame.Command.Connect, mapOf("accept-version" to "1.0,1.2", "host" to url.host))
+            val connect = StompFrame(StompFrame.Command.Connect, mapOf("accept-version" to "1.1,1.0", "host" to url.host))
             logWrapper.i("Sending frame: ${connect.lineDescription}")
-            webSocketClient.send(connect.toString().toByteArray())
+            webSocketClient.send(connect.toString())
         }
 
         override fun onClose(reason: String?) {
@@ -178,7 +205,7 @@ class RxNemWebSocketClient(private val hostUrl: String,
     private var socketControlTask: WebSocketControlTask? = null
     private val usedIds = mutableSetOf<Int>()
 
-    private inline fun <reified T : Any>subscribe(path: String, crossinline onSubscribed: () -> Unit, afterSubscriptionFrame: StompFrame? = null): Observable<T> {
+    private inline fun <reified T : Any>subscribe(path: String, noinline onSubscribed: () -> Unit, afterSubscriptionFrame: StompFrame? = null): Observable<T> {
         // Create new observable object and restore.
 
         return Observable.create<T> { subscriber ->
@@ -209,12 +236,9 @@ class RxNemWebSocketClient(private val hostUrl: String,
 
                 // Send subscribe frame
                 val subscribe = StompFrame(StompFrame.Command.Subscribe, mapOf("id" to id.toString(), "destination" to path))
-                task.sendFrame(subscribe)
+                task.sendFrame(subscribe, onSubscribed)
                 // If there is a frame after subscription, send it.
                 afterSubscriptionFrame?.let { task.sendFrame(it) }
-
-                // subscription call back
-                onSubscribed()
 
                 usedIds.add(id)
                 subscriber.setDisposable(object : Disposable {
