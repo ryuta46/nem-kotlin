@@ -1,4 +1,14 @@
 
+## Version 0.2.1
+
+2017-12-03
+
+* Add: Mosaic fullname property.
+* Fix: WebSocket client subscribed callback call timing.
+* Fix: Type of WebSocket send frame(binary -> text)
+* Fix: WebSocket client concurrency.
+
+
 ## Version 0.2.0
 
 2017-11-28
