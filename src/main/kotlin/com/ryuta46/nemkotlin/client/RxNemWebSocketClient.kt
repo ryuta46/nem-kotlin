@@ -38,10 +38,13 @@ import io.reactivex.Observable
 import io.reactivex.disposables.Disposable
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.Subject
-import sun.plugin.dom.exception.InvalidStateException
 import java.net.URI
 import java.net.URL
-import java.security.SecureRandom
+import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
 
 /**
  * NEM WebSocket client to NIS.
@@ -57,95 +60,98 @@ class RxNemWebSocketClient(private val hostUrl: String,
 
     private val logWrapper = LogWrapper(logger, this::class.java.simpleName)
 
+    var connectionTimeout = 30
+
     // WebSocketControlTask lives while the socket is opened.
     // Socket continues to open until there is no SUBSCRIBE path.
-    private class WebSocketControlTask(private val hostUrl: String, private val webSocketClient: WebSocketClient, logger: Logger) : WebSocketListener {
+    private class WebSocketControlTask(private val hostUrl: String, private val webSocketClient: WebSocketClient,logger: Logger) : WebSocketListener {
         private val logWrapper = LogWrapper(logger, RxNemWebSocketClient::class.java.simpleName)
 
         data class FrameQueueEntry(val frame: StompFrame, val onSubscribed:()->Unit)
-        private val frameQueue = mutableListOf<FrameQueueEntry>()
-
-        enum class State {
-            Ready,
-            Opening,
-            Opened,
-            Closing,
-            Closed
-        }
-
-        private var state = State.Ready
-
+        private val frameQueue = LinkedBlockingQueue<FrameQueueEntry>()
 
         val subject: Subject<StompFrame> = PublishSubject.create()
-        private var isStreamClosed = false
 
-        private fun closeStream(e: Throwable?) {
-            synchronized(this) {
-                if (isStreamClosed) return
-                if (e != null) {
-                    subject.onError(e)
+        private val usedIds = mutableSetOf<Int>()
+
+        private val openResult = LinkedBlockingDeque<Boolean>()
+
+        private var closeByServer = false
+        private var closeByClient = false
+        private var closeReason: String? = ""
+
+        private var onDisposed:() -> Unit = {}
+
+        fun start(connectionTimeout: Int, onDisposed:() -> Unit) {
+            this.onDisposed = onDisposed
+            Thread {
+                try {
+                    open()
+                    val opened = openResult.poll(connectionTimeout.toLong(), TimeUnit.SECONDS) ?: false
+                    if (opened) {
+                        while (!(closeByClient || closeByServer)) {
+                            val entry = frameQueue.poll(10, TimeUnit.MILLISECONDS) ?: continue
+
+                            sendFrameImmediately(entry.frame)
+                            entry.onSubscribed()
+                        }
+
+                        if (closeByClient) {
+                            sendFrameImmediately(StompFrame(StompFrame.Command.Disconnect))
+                        }
+                    }
+                } catch (e: Throwable) {
+                    closeReason = e.message
                 }
+                logWrapper.d("Tear down")
+
+                subject.onError(NetworkException(closeReason))
                 subject.onComplete()
-                isStreamClosed = true
+
+                webSocketClient.close()
+            }.start()
+        }
+
+        fun registerNewId(): Int {
+            val id = (0..Int.MAX_VALUE).find { !usedIds.contains(it) } ?: throw IllegalArgumentException("Too many observables.")
+            usedIds.add(id)
+            return id
+        }
+
+        fun unregisterId(id: Int) {
+            if (usedIds.contains(id)) {
+                usedIds.remove(id)
+                if (usedIds.isEmpty()) {
+                    logWrapper.d("Disposing control task")
+                    close() // Graceful shutdown
+                }
             }
         }
 
-        fun open() {
-            synchronized(this) {
-                if (state != State.Ready) throw InvalidStateException("Failed to open socket.")
-                logWrapper.i("Opening connection to $hostUrl")
 
-                val random = SecureRandom()
-                val randomServerAddress = random.nextInt(10000).toString()
-                val randomSessionId = (1..8).map {
-                    val raw = random.nextInt(10 + 26)
-                    if (raw < 10) '0' + raw else 'a' + raw - 10
-                }.joinToString(separator = "") { it.toString() }
+        private fun open() {
+            logWrapper.i("Opening connection to $hostUrl")
 
-                //val path = "/w/messages/$randomServerAddress/$randomSessionId/websocket"
-                val path = "/w/messages/websocket"
-                logWrapper.i("Request path: $path")
-                val url = NetworkUtils.createUrlString(hostUrl, path , emptyMap())
-                webSocketClient.open(URI(url), this)
-                state = State.Opening
-            }
+            val path = "/w/messages/websocket"
+            logWrapper.i("Request path: $path")
+            val url = NetworkUtils.createUrlString(hostUrl, path , emptyMap())
+            webSocketClient.open(URI(url), this)
+            logWrapper.i("Called open: $path")
         }
 
         fun sendFrame(frame: StompFrame, onSubscribed: () -> Unit = {}) {
-            synchronized(this) {
-                when(state) {
-                    State.Opening -> {
-                        logWrapper.i("Queue frame: ${frame.lineDescription}")
-                        frameQueue.add(FrameQueueEntry(frame, onSubscribed))
-                    }
-                    State.Opened -> {
-                        logWrapper.i("Sending frame: ${frame.lineDescription}")
-                        webSocketClient.send(frame.toString())
-                        onSubscribed()
-                    }
-                    else -> {
-                        logWrapper.i("Ignored frame: ${frame.lineDescription}")
-                    }
-                }
-            }
+            frameQueue.add(FrameQueueEntry(frame, onSubscribed))
         }
 
         // Graceful shutdown
         fun close() {
-            synchronized(this) {
-                state = when (state) {
-                    State.Opened -> {
-                        sendFrame(StompFrame(StompFrame.Command.Disconnect))
-                        webSocketClient.close()
-                        State.Closing
-                    }
-                    else -> {
-                        webSocketClient.close()
-                        State.Closed
-                    }
-                }
+            onDisposed()
+            closeByClient = true
+        }
 
-            }
+        @Synchronized private fun sendFrameImmediately(frame: StompFrame) {
+            logWrapper.i("Sending frame: ${frame.lineDescription} $this")
+            webSocketClient.send(frame.toString())
         }
 
         override fun onMessage(bytes: ByteArray) {
@@ -153,7 +159,7 @@ class RxNemWebSocketClient(private val hostUrl: String,
         }
 
         override fun onMessage(text: String) {
-            logWrapper.i("Received raw bytes: $text")
+            logWrapper.i("Received bytes: ${text.length} $this")
             val frame = try {
                 StompFrame.parse(text)
             } catch (e: ParseException) {
@@ -162,17 +168,7 @@ class RxNemWebSocketClient(private val hostUrl: String,
             }
             logWrapper.i("Received frame: ${frame.lineDescription}")
             if (frame.command == StompFrame.Command.Connected) {
-                synchronized(this) {
-                    // Send queued frames.
-                    frameQueue.forEach { frameQueue ->
-                        val frame = frameQueue.frame
-                        logWrapper.i("Sending queued frame: ${frame.lineDescription}")
-                        webSocketClient.send(frame.toString())
-                        frameQueue.onSubscribed()
-                    }
-                    frameQueue.clear()
-                    state = State.Opened
-                }
+                openResult.add(true)
             }
             subject.onNext(frame)
         }
@@ -181,86 +177,88 @@ class RxNemWebSocketClient(private val hostUrl: String,
             val url = URL(hostUrl)
             // Send CONNECT frame.
             val connect = StompFrame(StompFrame.Command.Connect, mapOf("accept-version" to "1.1,1.0", "host" to url.host))
-            logWrapper.i("Sending frame: ${connect.lineDescription}")
-            webSocketClient.send(connect.toString())
+            sendFrameImmediately(connect)
         }
 
         override fun onClose(reason: String?) {
+            openResult.add(false)
+            onDisposed()
             logWrapper.i("Closed socket to $hostUrl. reason: $reason")
-
-            // if there is any listener after closed socket, notify error to them.
-            closeStream(NetworkException(reason))
-
-            synchronized(this) {
-                webSocketClient.close()
-                state = State.Closed
-            }
+            closeReason = reason
+            closeByServer = true
         }
 
         override fun onFailure(message: String) {
+            openResult.add(false)
+            onDisposed()
             logWrapper.e("Error occurred during communication. message: $message")
-            closeStream(NetworkException(message))
+            closeReason = message
+            closeByServer = true
         }
+
     }
+
     private var socketControlTask: WebSocketControlTask? = null
-    private val usedIds = mutableSetOf<Int>()
+    private val taskCreationLock = ReentrantLock()
 
     private inline fun <reified T : Any>subscribe(path: String, noinline onSubscribed: () -> Unit, afterSubscriptionFrame: StompFrame? = null): Observable<T> {
         // Create new observable object and restore.
 
         return Observable.create<T> { subscriber ->
-            synchronized(this@RxNemWebSocketClient) {
-                val task = socketControlTask ?: WebSocketControlTask(hostUrl, webSocketClientFactory.create(), logger).apply {
-                    socketControlTask = this
-                    open()
-                }
-                // Search subscription ID
-                val id = (0..Int.MAX_VALUE).find { !usedIds.contains(it) } ?: throw IllegalArgumentException("Too many observables.")
-
-                // Subscript received frame subject
-                val subscription = task.subject.onErrorResumeNext { e: Throwable ->
-                    subscriber.onError(e)
-                    Observable.empty()
-                }.subscribe { frame: StompFrame ->
-                    if (frame.headers["subscription"] == id.toString()) {
-                        try {
-                            val objT = Gson().fromJson(frame.body, T::class.java)
-                            subscriber.onNext(objT)
-                        } catch (e: JsonParseException) {
-                            val message = "Failed to parse response: ${frame.body}"
-                            logWrapper.e(message)
-                            subscriber.onError(ParseException(message))
+            val (task, id) =
+                    taskCreationLock.withLock {
+                        val task = socketControlTask ?:
+                                WebSocketControlTask(hostUrl, webSocketClientFactory.create(), logger).apply {
+                                    socketControlTask = this
+                                    start(connectionTimeout) {
+                                        // Invalidate this task
+                                        if (this == socketControlTask) {
+                                            logWrapper.d("Disposed task $socketControlTask")
+                                            socketControlTask = null
+                                        }
+                                    }
                         }
+                        Pair(task, task.registerNewId())
+                    }
+
+            logWrapper.d("Subscribe to subject id: $id")
+            // Subscript received frame subject
+            val subscription = task.subject.onErrorResumeNext { e: Throwable ->
+                logWrapper.d("On error subject id: $id")
+
+                taskCreationLock.withLock { task.unregisterId(id) }
+                subscriber.onError(e)
+                Observable.empty()
+            }.subscribe { frame: StompFrame ->
+                if (frame.headers["subscription"] == id.toString()) {
+                    try {
+                        val objT = Gson().fromJson(frame.body, T::class.java)
+                        subscriber.onNext(objT)
+                    } catch (e: JsonParseException) {
+                        val message = "Failed to parse response: ${frame.body}"
+                        logWrapper.e(message)
+                        subscriber.onError(ParseException(message))
                     }
                 }
-
-                // Send subscribe frame
-                val subscribe = StompFrame(StompFrame.Command.Subscribe, mapOf("id" to id.toString(), "destination" to path))
-                task.sendFrame(subscribe, onSubscribed)
-                // If there is a frame after subscription, send it.
-                afterSubscriptionFrame?.let { task.sendFrame(it) }
-
-                usedIds.add(id)
-                subscriber.setDisposable(object : Disposable {
-                    override fun dispose() {
-                        synchronized(this@RxNemWebSocketClient) {
-                            logWrapper.i("Disposing subscription")
-                            subscription.dispose()
-
-                            // Sending unsubscribe frame
-                            val unsubscribe = StompFrame(StompFrame.Command.Unsubscribe, mapOf("id" to id.toString()))
-                            task.sendFrame(unsubscribe)
-
-                            usedIds.remove(id)
-                            if (usedIds.isEmpty()) {
-                                task.close() // Graceful shutdown
-                                socketControlTask = null
-                            }
-                        }
-                    }
-                    override fun isDisposed(): Boolean = subscription.isDisposed
-                })
             }
+
+            // Send subscribe frame
+            val subscribe = StompFrame(StompFrame.Command.Subscribe, mapOf("id" to id.toString(), "destination" to path))
+            task.sendFrame(subscribe, onSubscribed)
+            // If there is a frame after subscription, send it.
+            afterSubscriptionFrame?.let { task.sendFrame(it) }
+
+            subscriber.setDisposable(object : Disposable {
+                override fun dispose() {
+                    logWrapper.d("Disposing subscription id $id")
+                    // Sending unsubscribe frame
+                    val unsubscribe = StompFrame(StompFrame.Command.Unsubscribe, mapOf("id" to id.toString()))
+                    task.sendFrame(unsubscribe)
+                    taskCreationLock.withLock { task.unregisterId(id) }
+                    subscription.dispose()
+                }
+                override fun isDisposed(): Boolean = subscription.isDisposed
+            })
         }
     }
 
