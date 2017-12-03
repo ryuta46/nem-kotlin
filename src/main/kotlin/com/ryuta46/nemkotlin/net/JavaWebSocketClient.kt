@@ -52,7 +52,7 @@ class JavaWebSocketClient(private val connectionLostTimeout: Int = 30) : WebSock
                     listener.onClose(reason)
                 }
                 override fun onMessage(message: String) {
-                    listener.onMessage(message.toByteArray())
+                    listener.onMessage(message)
                 }
                 override fun onError(ex: Exception) {
                     listener.onFailure(ex.localizedMessage)
@@ -87,5 +87,22 @@ class JavaWebSocketClient(private val connectionLostTimeout: Int = 30) : WebSock
             }
         }
     }
+
+    override fun send(text: String) {
+        synchronized(this) {
+            val socket = socket ?: throw NetworkException("Connection is not opened.")
+            try {
+                socket.send(text)
+            } catch(e: Exception) {
+                when(e) {
+                    is NotYetConnectedException, is WebsocketNotConnectedException -> {
+                        throw NetworkException(e.message)
+                    }
+                    else -> throw e
+                }
+            }
+        }
+    }
+
 
 }

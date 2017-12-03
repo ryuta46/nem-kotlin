@@ -31,5 +31,7 @@ package com.ryuta46.nemkotlin.model
  */
 data class MosaicId(
         val namespaceId: String,
-        val name: String
-)
+        val name: String) {
+    val fullName:String get() = "$namespaceId:$name"
+}
+

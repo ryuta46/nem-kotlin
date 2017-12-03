@@ -58,7 +58,7 @@ internal class OkHttpWebSocketClient : WebSocketClient, WebSocketClientFactory {
 
                 override fun onMessage(webSocket: WebSocket?, text: String?) {
                     if (text != null) {
-                        listener.onMessage(text.toByteArray())
+                        listener.onMessage(text)
                     }
                 }
 
@@ -97,6 +97,13 @@ internal class OkHttpWebSocketClient : WebSocketClient, WebSocketClientFactory {
         synchronized(this) {
             val socket = socket ?: throw NetworkException("Connection is not opened.")
             if (!socket.send(ByteString.of(ByteBuffer.wrap(bytes)))) throw NetworkException("Failed to send message. ${String(bytes)}")
+        }
+    }
+
+    override fun send(text: String) {
+        synchronized(this) {
+            val socket = socket ?: throw NetworkException("Connection is not opened.")
+            if (!socket.send(text)) throw NetworkException("Failed to send message. $text")
         }
     }
 

@@ -24,6 +24,7 @@
 
 package com.ryuta46.nemkotlin.net
 
+import com.google.gson.Gson
 import com.ryuta46.nemkotlin.exceptions.ParseException
 
 class StompFrame(val command: Command, val headers: Map<String,String> = emptyMap(), val body: String = "") {
@@ -53,6 +54,22 @@ class StompFrame(val command: Command, val headers: Map<String,String> = emptyMa
 
     companion object {
         @JvmStatic fun parse(frameString: String): StompFrame {
+            try {
+                return parseAsRaw(frameString)
+            } catch (e: ParseException) {
+                // workaround for SockJS
+                if (frameString.startsWith("a")) {
+                    val sockJsFrameContainer = Gson().fromJson(frameString.substring(1), List::class.java)
+                    if (sockJsFrameContainer.isNotEmpty()){
+                        (sockJsFrameContainer[0] as? String) ?.let {
+                            return parseAsRaw(it)
+                        }
+                    }
+                }
+                throw e
+            }
+        }
+        @JvmStatic fun parseAsRaw(frameString: String): StompFrame {
             val sections = frameString.split("\n\n")
             if (sections.size != 2) {
                 throw ParseException("Failed to split to headers and body.")
@@ -74,7 +91,13 @@ class StompFrame(val command: Command, val headers: Map<String,String> = emptyMa
         }
     }
 
-    override fun toString(): String {
+    override fun toString() :String {
+        return toStringRaw()
+        // Workaround for SockJS frame.
+        //return Gson().toJson(listOf(toStringRaw()))
+    }
+
+    private fun toStringRaw(): String {
         return command.name.toUpperCase() + "\n" +
                 headers.toList().joinToString(separator = "") { "${it.first}:${it.second}\n" } + "\n" +
                 body + "\u0000"
