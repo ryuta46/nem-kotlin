@@ -1,4 +1,10 @@
 
+## Version 0.2.2
+
+2017-12-05
+
+* Add: Data models of each transaction type.
+
 ## Version 0.2.1
 
 2017-12-03
