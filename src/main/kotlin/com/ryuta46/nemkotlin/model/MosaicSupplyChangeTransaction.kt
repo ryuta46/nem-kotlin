@@ -32,8 +32,8 @@ package com.ryuta46.nemkotlin.model
  * @property delta The supply change in units for the mosaic.
  * @property mosaicId The mosaic id.
  */
-class MosaicSupplyChangeTransaction(common: CommonTransaction,
+class MosaicSupplyChangeTransaction(common: Transaction,
                                     val supplyType: Int,
                                     val delta: Long,
                                     val mosaicId: MosaicId
-) : CommonTransaction by common
+) : Transaction by common

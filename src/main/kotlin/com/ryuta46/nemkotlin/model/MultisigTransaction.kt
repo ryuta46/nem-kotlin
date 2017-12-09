@@ -24,6 +24,8 @@
 
 package com.ryuta46.nemkotlin.model
 
+import com.ryuta46.nemkotlin.util.ConvertUtils.Companion.toByteArrayWithLittleEndian
+
 /**
  * Multisig transaction are the only way to make transaction from a multisig account to another account.
  * A multisig transaction carries another transaction inside (often referred to as "inner" transaction).
@@ -33,7 +35,15 @@ package com.ryuta46.nemkotlin.model
  * @property otherTrans The inner transaction. The inner transaction can be a transfer transaction, an importance transfer transaction or a multisig aggregate modification transaction. The inner transaction does not have a valid signature.
  * @property multisigSignatureTransaction An array of MulsigSignatureTransaction objects.
  */
-class MultisigTransaction(common: CommonTransaction,
-                          val otherTrans: Transaction,
+class MultisigTransaction(private val common: Transaction,
+                          val otherTrans: GeneralTransaction,
                           val multisigSignatureTransaction: List<MultisigSignatureTransaction>
-) : CommonTransaction by common
+) : Transaction by common {
+    override val byteArray: ByteArray
+        get() {
+            // Only transfer, importance transfer or multisig aggregate transfer can be sent as multisig transaction.
+            val other = otherTrans.asTransfer ?: otherTrans.asImportanceTransfer ?: otherTrans.asMultisigAggregateModificationTransfer ?: return ByteArray(0)
+            return common.byteArray +
+                    other.byteArray.let { toByteArrayWithLittleEndian(it.size) + it }
+        }
+}

@@ -291,7 +291,7 @@ class RxNemWebSocketClient(private val hostUrl: String,
     private data class TransactionMetaDataMapper(
             val height: Long, // Long. Illegal height is returned 'unconfimerd' API.
             val id: Int, val hash: TransactionHash)
-    private data class TransactionMetaDataPairMapper( val meta: TransactionMetaDataMapper, val transaction: Transaction)
+    private data class TransactionMetaDataPairMapper( val meta: TransactionMetaDataMapper, val transaction: GeneralTransaction)
 
     /**
      * Gets unconfirmed transactions related to the given address.

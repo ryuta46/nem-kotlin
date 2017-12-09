@@ -34,11 +34,11 @@ package com.ryuta46.nemkotlin.model
  * @property newPart The new part which is concatenated to the parent with a '.' as separator.
  * @property parent The parent namespace. This can be null if the transaction rents a root namespace.
  */
-class ProvisionNamespaceTransaction(common: CommonTransaction,
+class ProvisionNamespaceTransaction(common: Transaction,
                                     val rentalFee: Long,
                                     val rentalFeeSink: String,
                                     val newPart: String,
                                     val parent: String? = null
-) : CommonTransaction by common
+) : Transaction by common
 
 

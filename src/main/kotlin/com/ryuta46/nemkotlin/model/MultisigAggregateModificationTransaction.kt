@@ -24,6 +24,9 @@
 
 package com.ryuta46.nemkotlin.model
 
+import com.ryuta46.nemkotlin.util.ConvertUtils
+import com.ryuta46.nemkotlin.util.ConvertUtils.Companion.toByteArrayWithLittleEndian
+
 /**
  * Multisig aggregate modification transactions are part of the NEM's multisig account system.
  * A multisig aggregate modification transaction holds an array of multisig cosignatory modifications and a single multisig minimum cosignatories modification inside the transaction.
@@ -32,7 +35,33 @@ package com.ryuta46.nemkotlin.model
  * @property modifications An array of multisig modifications.
  * @property minCosignatories The minimum cosignatories modification.
  */
-class MultisigAggregateModificationTransaction(common: CommonTransaction,
+class MultisigAggregateModificationTransaction(private val common: Transaction,
                                                val modifications: List<MultisigCosignatoryModification>,
                                                val minCosignatories: MinimumCosignatoriesModification
-) : CommonTransaction by common
+) : Transaction by common {
+    override val byteArray: ByteArray
+        get() {
+            return common.byteArray +
+                toByteArrayWithLittleEndian(modifications.size) +
+                let {
+                    var modificationBytes = ByteArray(0)
+                    modifications.forEach {
+                        val publicKey = ConvertUtils.toByteArray(it.cosignatoryAccount)
+                        modificationBytes +=
+                                (toByteArrayWithLittleEndian(it.modificationType) +
+                                toByteArrayWithLittleEndian(publicKey.size) +
+                                publicKey).let {
+                                    toByteArrayWithLittleEndian(it.size) + it
+                                }
+                    }
+                    modificationBytes
+                } +
+                if (minCosignatories.relativeChange == 0) {
+                    toByteArrayWithLittleEndian(0)
+                } else {
+                    toByteArrayWithLittleEndian(minCosignatories.relativeChange).let {
+                        toByteArrayWithLittleEndian(it.size) + it
+                    }
+                }
+    }
+}

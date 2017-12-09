@@ -25,6 +25,9 @@ package com.ryuta46.nemkotlin.model
 
 import com.ryuta46.nemkotlin.enums.MessageType
 import com.ryuta46.nemkotlin.enums.TransactionType
+import com.ryuta46.nemkotlin.transaction.TransactionHelper
+import com.ryuta46.nemkotlin.util.ConvertUtils
+import com.ryuta46.nemkotlin.util.ConvertUtils.Companion.toByteArrayWithLittleEndian
 
 
 /**
@@ -36,7 +39,7 @@ import com.ryuta46.nemkotlin.enums.TransactionType
  * @property version The version of the structure.
  * @property signer The public key of the account that created the transaction.
  */
-interface CommonTransaction {
+interface Transaction {
     val timeStamp: Int
     val signature: String
     val fee: Long
@@ -44,57 +47,73 @@ interface CommonTransaction {
     val deadline: Int
     val version: Int
     val signer: String
+    val byteArray: ByteArray
 }
 
-open class CommonTransactionImpl: CommonTransaction {
-    override val timeStamp: Int = 0
-    override val signature: String = ""
-    override val fee: Long = 0
-    override val type: Int = 0
-    override val deadline: Int = 0
-    override val version: Int = 0
-    override val signer: String = ""
+open class TransactionImpl : Transaction {
+    override var timeStamp: Int = 0
+    override var signature: String = ""
+    override var fee: Long = 0
+    override var type: Int = 0
+    override var deadline: Int = 0
+    override var version: Int = 0
+    override var signer: String = ""
+
+    override val byteArray: ByteArray
+        get() {
+            val calculatedTimestamp = if (timeStamp >= 0) timeStamp else TransactionHelper.currentTimeFromOrigin()
+            // deadline
+            val calculatedDeadline = if (deadline >= 0) deadline else calculatedTimestamp + 60 * 60
+            val publicKey = ConvertUtils.toByteArray(signer)
+
+            return toByteArrayWithLittleEndian(type) +
+                    toByteArrayWithLittleEndian(version) +
+                    toByteArrayWithLittleEndian(calculatedTimestamp) +
+                    toByteArrayWithLittleEndian(publicKey.size) +
+                    publicKey +
+                    toByteArrayWithLittleEndian(fee) +
+                    toByteArrayWithLittleEndian(calculatedDeadline)
+        }
 }
 
-class Transaction : CommonTransactionImpl(){
+class GeneralTransaction : TransactionImpl(){
     // for Transfer
-    val amount: Long? = null
-    val recipient: String? = null
-    val mosaics: List<Mosaic>? = null
-    val message: Message? = null
+    var amount: Long? = null
+    var recipient: String? = null
+    var mosaics: List<Mosaic>? = null
+    var message: Message? = null
 
     // for Importance Transfer
-    val mode: Int? = null
-    val remoteAccount: String? = null
+    var mode: Int? = null
+    var remoteAccount: String? = null
 
     // for Multisig Aggregate Modification Transfer
-    val modifications: List<MultisigCosignatoryModification>? = null
-    val minCosignatories: MinimumCosignatoriesModification? = null
+    var modifications: List<MultisigCosignatoryModification>? = null
+    var minCosignatories: MinimumCosignatoriesModification? = null
 
     // for Multisig Signature
-    val otherHash: TransactionHash? = null
-    val otherAccount: String? = null
+    var otherHash: TransactionHash? = null
+    var otherAccount: String? = null
 
     // for Multisig
-    val otherTrans: Transaction? = null
-    val multisigSignatureTransaction: List<MultisigSignatureTransaction>? = null
+    var otherTrans: GeneralTransaction? = null
+    var multisigSignatureTransaction: List<MultisigSignatureTransaction>? = null
 
     // for Provision Namespace
-    val rentalFee: Long? = null
-    val rentalFeeSink: String? = null
-    val newPart: String? = null
-    val parent: String? = null
+    var rentalFee: Long? = null
+    var rentalFeeSink: String? = null
+    var newPart: String? = null
+    var parent: String? = null
 
     // for Mosaic Definition Creation
-    val creationFee: Long? = null
-    val creationFeeSink: String? = null
-    val mosaicDefinition: MosaicDefinition? = null
+    var creationFee: Long? = null
+    var creationFeeSink: String? = null
+    var mosaicDefinition: MosaicDefinition? = null
 
     // for Mosaic Supply Change
-    val supplyType: Int? = null
-    val delta: Long? = null
-    val mosaicId: MosaicId? = null
-
+    var supplyType: Int? = null
+    var delta: Long? = null
+    var mosaicId: MosaicId? = null
 
     val asTransfer: TransferTransaction?
         get() {
@@ -144,7 +163,7 @@ class Transaction : CommonTransactionImpl(){
                 return null
             }
             return MultisigTransaction(this,
-                    otherTrans ?: Transaction(),
+                    otherTrans ?: GeneralTransaction(),
                     multisigSignatureTransaction ?: emptyList())
         }
 

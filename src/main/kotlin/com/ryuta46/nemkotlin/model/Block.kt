@@ -43,7 +43,7 @@ data class Block(
         val signature: String,
         val prevBlockHash: TransactionHash,
         val type: Int,
-        val transactions: List<Transaction>,
+        val transactions: List<GeneralTransaction>,
         val version: Int,
         val signer: String,
         val height: Int

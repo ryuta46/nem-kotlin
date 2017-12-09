@@ -24,7 +24,6 @@
 package com.ryuta46.nemkotlin.client
 
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.ryuta46.nemkotlin.Settings
 import com.ryuta46.nemkotlin.account.AccountGenerator
 import com.ryuta46.nemkotlin.enums.Version
@@ -182,9 +181,9 @@ class NemApiClientTest {
 
         assertTrue(result.isNotEmpty())
         result.forEach {
-            assertTrue(Settings.PUBLIC_KEY == it.transaction.signer || Settings.ADDRESS == it.transaction.recipient)
+            val transfer = it.transaction.asTransfer ?: it.transaction.asMutisig?.otherTrans?.asTransfer ?: return@forEach
+            assertTrue(Settings.PUBLIC_KEY == transfer.signer || Settings.ADDRESS == transfer.recipient)
         }
-
     }
 
     @Test fun accountUnconfirmedTransactions() {

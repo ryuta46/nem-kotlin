@@ -24,6 +24,9 @@
 
 package com.ryuta46.nemkotlin.model
 
+import com.ryuta46.nemkotlin.util.ConvertUtils
+import com.ryuta46.nemkotlin.util.ConvertUtils.Companion.toByteArrayWithLittleEndian
+
 /**
  * Multisig signature transactions are part of the NEM's multisig account system.
  * Multisig signature transactions are included in the corresponding multisig transaction and are the way a cosignatory of a multisig account can sign a multisig transaction for that account.
@@ -31,8 +34,19 @@ package com.ryuta46.nemkotlin.model
  * @property otherHash The hash of the inner transaction of the corresponding multisig transaction.
  * @property otherAccount The address of the corresponding multisig account.
  */
-class MultisigSignatureTransaction(common: CommonTransaction,
+class MultisigSignatureTransaction(private val common: Transaction,
                                    val otherHash: TransactionHash,
                                    val otherAccount: String
-) : CommonTransaction by common
+) : Transaction by common {
+    override val byteArray: ByteArray
+        get() {
+            val hash = ConvertUtils.toByteArray(otherHash.data)
+            return common.byteArray +
+                    (toByteArrayWithLittleEndian(hash.size) + hash).let {
+                        toByteArrayWithLittleEndian(it.size) + it
+                    } +
+                    toByteArrayWithLittleEndian(otherAccount.length) +
+                    otherAccount.toByteArray()
+        }
+}
 

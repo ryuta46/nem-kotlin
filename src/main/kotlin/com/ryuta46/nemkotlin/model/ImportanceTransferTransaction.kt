@@ -34,7 +34,7 @@ package com.ryuta46.nemkotlin.model
  * 2: Deactivate remote harvesting.
  * @property remoteAccount The public key of the receiving account as hexadecimal string.
  */
-class ImportanceTransferTransaction(common: CommonTransaction,
+class ImportanceTransferTransaction(common: Transaction,
                                     val mode: Int,
                                     val remoteAccount: String
-) : CommonTransaction by common
+) : Transaction by common

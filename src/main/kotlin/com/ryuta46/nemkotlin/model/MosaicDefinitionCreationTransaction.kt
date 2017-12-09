@@ -29,8 +29,8 @@ package com.ryuta46.nemkotlin.model
  * @property creationFeeSink The public key of the account to which the creation fee is transferred.
  * @property mosaicDefinition The actual mosaic definition.
  */
-class MosaicDefinitionCreationTransaction(common: CommonTransaction,
+class MosaicDefinitionCreationTransaction(common: Transaction,
                                           val creationFee: Long,
                                           val creationFeeSink: String,
                                           val mosaicDefinition: MosaicDefinition
-) : CommonTransaction by common
+) : Transaction by common
