@@ -50,14 +50,62 @@ interface Transaction {
     val byteArray: ByteArray
 }
 
-open class TransactionImpl : Transaction {
-    override var timeStamp: Int = 0
-    override var signature: String = ""
-    override var fee: Long = 0
-    override var type: Int = 0
-    override var deadline: Int = 0
-    override var version: Int = 0
-    override var signer: String = ""
+private class EmptyTransaction : Transaction {
+    override val timeStamp: Int = 0
+    override val signature: String = ""
+    override val fee: Long = 0
+    override val type: Int = 0
+    override val deadline: Int = 0
+    override val version: Int = 0
+    override val signer: String = ""
+    override val byteArray: ByteArray = ByteArray(0)
+}
+
+
+class GeneralTransaction(
+        transaction: Transaction = EmptyTransaction(),
+        override val timeStamp: Int = transaction.timeStamp,
+        override val signature: String = transaction.signature,
+        override val fee: Long = transaction.fee,
+        override val type: Int = transaction.type,
+        override val deadline: Int = transaction.deadline,
+        override val version: Int = transaction.version,
+        override val signer: String = transaction.signer,
+
+        // for Transfer
+        val amount: Long? = null,
+        val recipient: String? = null,
+        val mosaics: List<Mosaic>? = null,
+        val message: Message? = null,
+        // for Importance Transfer
+        val mode: Int? = null,
+        val remoteAccount: String? = null,
+        // for Multisig Aggregate Modification Transfer
+        val modifications: List<MultisigCosignatoryModification>? = null,
+        val minCosignatories: MinimumCosignatoriesModification? = null,
+        // for Multisig Signature
+        val otherHash: TransactionHash? = null,
+        val otherAccount: String? = null,
+        // for Multisig
+        val otherTrans: GeneralTransaction? = null,
+        val multisigSignatureTransaction: List<MultisigSignatureTransaction>? = null,
+
+        // for Provision Namespace
+        val rentalFee: Long? = null,
+        val rentalFeeSink: String? = null,
+        val newPart: String? = null,
+        val parent: String? = null,
+
+        // for Mosaic Definition Creation
+        val creationFee: Long? = null,
+        val creationFeeSink: String? = null,
+        val mosaicDefinition: MosaicDefinition? = null,
+
+        // for Mosaic Supply Change
+        val supplyType: Int? = null,
+        val delta: Long? = null,
+        val mosaicId: MosaicId? = null
+) : Transaction {
 
     override val byteArray: ByteArray
         get() {
@@ -74,46 +122,13 @@ open class TransactionImpl : Transaction {
                     toByteArrayWithLittleEndian(fee) +
                     toByteArrayWithLittleEndian(calculatedDeadline)
         }
-}
 
-class GeneralTransaction : TransactionImpl(){
     // for Transfer
-    var amount: Long? = null
-    var recipient: String? = null
-    var mosaics: List<Mosaic>? = null
-    var message: Message? = null
-
-    // for Importance Transfer
-    var mode: Int? = null
-    var remoteAccount: String? = null
-
-    // for Multisig Aggregate Modification Transfer
-    var modifications: List<MultisigCosignatoryModification>? = null
-    var minCosignatories: MinimumCosignatoriesModification? = null
-
-    // for Multisig Signature
-    var otherHash: TransactionHash? = null
-    var otherAccount: String? = null
-
-    // for Multisig
-    var otherTrans: GeneralTransaction? = null
-    var multisigSignatureTransaction: List<MultisigSignatureTransaction>? = null
-
-    // for Provision Namespace
-    var rentalFee: Long? = null
-    var rentalFeeSink: String? = null
-    var newPart: String? = null
-    var parent: String? = null
-
-    // for Mosaic Definition Creation
-    var creationFee: Long? = null
-    var creationFeeSink: String? = null
-    var mosaicDefinition: MosaicDefinition? = null
-
-    // for Mosaic Supply Change
-    var supplyType: Int? = null
-    var delta: Long? = null
-    var mosaicId: MosaicId? = null
+    constructor(transaction: TransferTransaction): this(transaction,
+            amount = transaction.amount,
+            recipient = transaction.recipient,
+            mosaics = transaction.mosaics,
+            message = transaction.message)
 
     val asTransfer: TransferTransaction?
         get() {
@@ -127,6 +142,11 @@ class GeneralTransaction : TransactionImpl(){
                     message ?: Message("", MessageType.Plain.rawValue))
         }
 
+    // for Importance Transfer
+    constructor(transaction: ImportanceTransferTransaction): this(transaction,
+            mode = transaction.mode,
+            remoteAccount = transaction.remoteAccount)
+
     val asImportanceTransfer: ImportanceTransferTransaction?
         get() {
             if (type != TransactionType.ImportanceTransfer.rawValue) {
@@ -136,6 +156,11 @@ class GeneralTransaction : TransactionImpl(){
                     mode ?: 0,
                     remoteAccount ?: "")
         }
+
+    // for Multisig Aggregate Modification Transfer
+    constructor(transaction: MultisigAggregateModificationTransaction) : this(transaction,
+            modifications = transaction.modifications,
+            minCosignatories = transaction.minCosignatories)
 
     val asMultisigAggregateModificationTransfer: MultisigAggregateModificationTransaction?
         get() {
@@ -147,6 +172,11 @@ class GeneralTransaction : TransactionImpl(){
                     minCosignatories ?: MinimumCosignatoriesModification(0))
         }
 
+    // for Multisig Signature
+    constructor(transaction: MultisigSignatureTransaction) : this(transaction,
+            otherHash = transaction.otherHash,
+            otherAccount = transaction.otherAccount)
+
     val asMultisigSignature: MultisigSignatureTransaction?
         get(){
             if (type != TransactionType.MultisigSignature.rawValue) {
@@ -157,7 +187,12 @@ class GeneralTransaction : TransactionImpl(){
                     otherAccount ?: "")
         }
 
-    val asMutisig: MultisigTransaction?
+    // for Multisig
+    constructor(transaction: MultisigTransaction) : this(transaction,
+            otherTrans = transaction.otherTrans,
+            multisigSignatureTransaction = transaction.multisigSignatureTransaction)
+
+    val asMultisig: MultisigTransaction?
         get() {
             if (type != TransactionType.Multisig.rawValue) {
                 return null
@@ -166,6 +201,13 @@ class GeneralTransaction : TransactionImpl(){
                     otherTrans ?: GeneralTransaction(),
                     multisigSignatureTransaction ?: emptyList())
         }
+
+    // for Provision Namespace
+    constructor(transaction: ProvisionNamespaceTransaction) : this(transaction,
+            rentalFee = transaction.rentalFee,
+            rentalFeeSink = transaction.rentalFeeSink,
+            newPart = transaction.newPart,
+            parent = transaction.parent)
 
     val asProvisionNamespace: ProvisionNamespaceTransaction?
         get() {
@@ -179,6 +221,12 @@ class GeneralTransaction : TransactionImpl(){
                     parent)
         }
 
+    // for Mosaic Definition Creation
+    constructor(transaction: MosaicDefinitionCreationTransaction) : this(transaction,
+            creationFee = transaction.creationFee,
+            creationFeeSink = transaction.creationFeeSink,
+            mosaicDefinition = transaction.mosaicDefinition)
+
     val asMosaicDefinitionCreation: MosaicDefinitionCreationTransaction?
         get() {
             if (type != TransactionType.MosaicDefinitionCreation.rawValue) {
@@ -189,6 +237,12 @@ class GeneralTransaction : TransactionImpl(){
                     creationFeeSink ?: "",
                     mosaicDefinition ?: MosaicDefinition("", MosaicId("", ""), "", emptyList()))
         }
+
+    // for Mosaic Supply Change
+    constructor(transaction: MosaicSupplyChangeTransaction) : this(transaction,
+            supplyType = transaction.supplyType,
+            delta = transaction.delta,
+            mosaicId = transaction.mosaicId)
 
     val asMosaicSupplyChange: MosaicSupplyChangeTransaction?
         get() {

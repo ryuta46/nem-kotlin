@@ -41,7 +41,9 @@ class TransactionHelper {
         private const val minimumTransferFee = 50_000L
         private const val maximumXemTransferFee = 1_250_000L
         private const val transferFeeFactor = 50_000L
-        private const val aggregateModificationFee = 500_000L
+        private const val multisigAggregateModificationFee = 500_000L
+        private const val multisigFee = 150_000L
+        private const val multisigSignatureFee = 150_000L
 
         /**
          * Creates XEM transfer transaction object.
@@ -65,18 +67,19 @@ class TransactionHelper {
                 else -> Math.max(minimumTransferFee, calculateXemTransferFee(microNem) + calculateMessageTransferFee(message))
             }
             val type = TransactionType.Transfer
-            val transaction = GeneralTransaction()
-            transaction.type = type.rawValue
-            transaction.version = version.rawValue.shl(24) + type.versionOffset
-            transaction.timeStamp = timestamp
-            transaction.signer = publicKey
-            transaction.fee = calculatedFee
-            transaction.deadline = deadline
-            transaction.recipient = receiverAddress
-            transaction.amount = microNem
-            transaction.message = Message(message, messageType.rawValue)
-            transaction.mosaics = emptyList()
-            return transaction.asTransfer!!
+            val common = GeneralTransaction(
+                    type = type.rawValue,
+                    version = version.rawValue.shl(24) + type.versionOffset,
+                    timeStamp = timestamp,
+                    signer = publicKey,
+                    fee = calculatedFee,
+                    deadline = deadline)
+
+            return TransferTransaction(common,
+                    microNem,
+                    receiverAddress,
+                    emptyList(), // No mosaic attachment
+                    Message(message, messageType.rawValue))
         }
 
         /**
@@ -134,18 +137,19 @@ class TransactionHelper {
                 }
             }
             val type = TransactionType.Transfer
-            val transaction = GeneralTransaction()
-            transaction.type = type.rawValue
-            transaction.version = version.rawValue.shl(24) + type.versionOffset
-            transaction.timeStamp = timestamp
-            transaction.signer = publicKey
-            transaction.fee = calculatedFee
-            transaction.deadline = deadline
-            transaction.recipient = receiverAddress
-            transaction.amount = 1_000_000L // amount is always 1,000,000
-            transaction.message = Message(message, messageType.rawValue)
-            transaction.mosaics = mosaics.map { Mosaic(MosaicId(it.namespaceId, it.name), it.quantity) }
-            return transaction.asTransfer!!
+            val common = GeneralTransaction(
+                    type = type.rawValue,
+                    version = version.rawValue.shl(24) + type.versionOffset,
+                    timeStamp = timestamp,
+                    signer = publicKey,
+                    fee = calculatedFee,
+                    deadline = deadline)
+
+            return TransferTransaction(common,
+                    1_000_000L, // amount is always 1,000,000
+                    receiverAddress,
+                    mosaics.map { Mosaic(MosaicId(it.namespaceId, it.name), it.quantity) },
+                    Message(message, messageType.rawValue))
         }
 
         /**
@@ -185,26 +189,25 @@ class TransactionHelper {
          * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
          * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
          */
-        private fun createMultisigAggregateModificationTransactionObject(publicKey: String, version: Version = Version.Main,
+        @JvmStatic fun createMultisigAggregateModificationTransactionObject(publicKey: String, version: Version = Version.Main,
                                                                          modifications: List<MultisigCosignatoryModification> = emptyList(),
                                                                          minimumCosignatoriesModification: Int = 0,
                                                                          fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): MultisigAggregateModificationTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
                 fee >= 0 -> fee
-                else -> calculateAggregateModificationFee()
+                else -> calculateMultisigAggregateModificationFee()
             }
             val type = TransactionType.MultisigAggregateModificationTransfer
-            val transaction = GeneralTransaction()
-            transaction.type = type.rawValue
-            transaction.version = version.rawValue.shl(24) + type.versionOffset
-            transaction.timeStamp = timestamp
-            transaction.signer = publicKey
-            transaction.fee = calculatedFee
-            transaction.deadline = deadline
-            transaction.modifications = modifications
-            transaction.minCosignatories = MinimumCosignatoriesModification(minimumCosignatoriesModification)
-            return transaction.asMultisigAggregateModificationTransfer!!
+            val common = GeneralTransaction(
+                    type = type.rawValue,
+                    version = version.rawValue.shl(24) + type.versionOffset,
+                    timeStamp = timestamp,
+                    signer = publicKey,
+                    fee = calculatedFee,
+                    deadline = deadline)
+
+            return MultisigAggregateModificationTransaction(common, modifications, MinimumCosignatoriesModification(minimumCosignatoriesModification))
         }
 
         /**
@@ -227,6 +230,122 @@ class TransactionHelper {
                             version,
                             modifications,
                             minimumCosignatoriesModification,
+                            fee,
+                            timestamp,
+                            deadline))
+        }
+
+
+        /**
+         * Creates multisig transaction object.
+         * @param publicKey Public key string of sender account. (Required)
+         * @param innerTransaction Transfer, importance transfer or aggregate modification transaction.
+         * @param version Network version. (Optional. The default is Main network.)
+         * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
+         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         */
+        @JvmStatic fun createMultisigTransactionObject(publicKey: String,
+                                                    innerTransaction: Transaction,
+                                                    version: Version = Version.Main,
+                                                    fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): MultisigTransaction {
+            // calculate minimum transaction fee.
+            val calculatedFee = when {
+                fee >= 0 -> fee
+                else -> calculateMultisigFee()
+            }
+            val inner = when(innerTransaction) {
+                is TransferTransaction -> GeneralTransaction(innerTransaction)
+                is MultisigAggregateModificationTransaction -> GeneralTransaction(innerTransaction)
+                else -> throw IllegalArgumentException("Illegal inner transaction type")
+            }
+
+
+            val type = TransactionType.Multisig
+            val common = GeneralTransaction(
+                    type = type.rawValue,
+                    version = version.rawValue.shl(24) + type.versionOffset,
+                    timeStamp = timestamp,
+                    signer = publicKey,
+                    fee = calculatedFee,
+                    deadline = deadline)
+
+            return MultisigTransaction(common, inner, emptyList())
+        }
+
+        /**
+         * Creates multisig transaction object.
+         * @param sender Sender account. (Required)
+         * @param innerTransaction Transfer, importance transfer or aggregate modification transaction.
+         * @param version Network version. (Optional. The default is Main network.)
+         * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
+         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         */
+        @JvmStatic fun createMultisigTransaction(sender: Account,
+                                                 innerTransaction: Transaction,
+                                                 version: Version = Version.Main,
+                                                 fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+            return createRequestAnnounce(sender,
+                    createMultisigTransactionObject(
+                            sender.publicKeyString,
+                            innerTransaction,
+                            version,
+                            fee,
+                            timestamp,
+                            deadline))
+        }
+
+
+        /**
+         * Creates multisig transaction object.
+         * @param publicKey Public key string of sender account. (Required)
+         * @param otherHash Target transaction hash. (Required)
+         * @param multisigAccount Traget multisig account address. (Required)
+         * @param version Network version. (Optional. The default is Main network.)
+         * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
+         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         */
+        @JvmStatic fun createMultisigSignatureTransactionObject(publicKey: String,
+                                                             otherHash: String, multisigAccount: String,
+                                                             version: Version = Version.Main,
+                                                             fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): MultisigSignatureTransaction {
+            // calculate minimum transaction fee.
+            val calculatedFee = when {
+                fee >= 0 -> fee
+                else -> calculateMultisigSignatureFee()
+            }
+            val type = TransactionType.MultisigSignature
+            val common = GeneralTransaction(
+                    type = type.rawValue,
+                    version = version.rawValue.shl(24) + type.versionOffset,
+                    timeStamp = timestamp,
+                    signer = publicKey,
+                    fee = calculatedFee,
+                    deadline = deadline)
+            return MultisigSignatureTransaction(common, TransactionHash(otherHash), multisigAccount)
+        }
+
+        /**
+         * Creates multisig transaction object.
+         * @param sender Sender account. (Required)
+         * @param otherHash Target transaction hash. (Required)
+         * @param multisigAccount Traget multisig account address. (Required)
+         * @param version Network version. (Optional. The default is Main network.)
+         * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
+         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         */
+        @JvmStatic fun createMultisigSignatureTransaction(sender: Account,
+                                                          otherHash: String, multisigAccount: String,
+                                                          version: Version = Version.Main,
+                                                          fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+            return createRequestAnnounce(sender,
+                    createMultisigSignatureTransactionObject(
+                            sender.publicKeyString,
+                            otherHash, multisigAccount,
+                            version,
                             fee,
                             timestamp,
                             deadline))
@@ -287,9 +406,18 @@ class TransactionHelper {
 
         /**
          * Calculates aggregate modification fee. This has been flat in v0.6.93.
-         * @
          */
-        @JvmStatic fun calculateAggregateModificationFee(): Long = aggregateModificationFee
+        @JvmStatic fun calculateMultisigAggregateModificationFee(): Long = multisigAggregateModificationFee
+
+        /**
+         * Calculates multisig transaction fee.
+         */
+        @JvmStatic fun calculateMultisigFee(): Long = multisigFee
+
+        /**
+         * Calculates multisig transaction fee.
+         */
+        @JvmStatic fun calculateMultisigSignatureFee(): Long = multisigSignatureFee
 
         /**
          * Calculates current number of seconds elapsed since the creation of the nemesis block.

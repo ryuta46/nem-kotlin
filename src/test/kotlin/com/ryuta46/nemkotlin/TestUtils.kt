@@ -24,13 +24,44 @@
 
 package com.ryuta46.nemkotlin
 
+import com.ryuta46.nemkotlin.model.NemAnnounceResult
+import com.ryuta46.nemkotlin.model.NemRequestResult
+import junit.framework.TestCase.assertEquals
+
 class TestUtils {
     companion object {
-        @JvmStatic fun <T>waitUntilNotNull(timeout: Int = 30 * 1000, body: () -> T) {
+        @JvmStatic fun <T>waitUntilNotNull(timeout: Int = 30 * 1000, body: () -> T?): T? {
             for(i in 0 until timeout / 10) {
-                if (body() != null) return
+                body()?.let {
+                   return it
+                }
                 Thread.sleep(10)
             }
+            return null
+        }
+        @JvmStatic fun waitUntil(timeout: Int = 30 * 1000, body: () -> Boolean) {
+            for(i in 0 until timeout / 10) {
+                if (body()) return
+                Thread.sleep(10)
+            }
+        }
+
+        @JvmStatic fun checkResult(result: NemAnnounceResult) {
+            assertEquals(1, result.type)
+            assertEquals(1, result.code)
+            assertEquals("SUCCESS", result.message)
+        }
+
+        @JvmStatic fun checkResultIsInsufficientBalance(result: NemAnnounceResult) {
+            assertEquals(1, result.type)
+            assertEquals(5, result.code)
+            assertEquals("FAILURE_INSUFFICIENT_BALANCE", result.message)
+        }
+
+        @JvmStatic fun checkResultIsMultisigNotACosigner(result: NemAnnounceResult) {
+            assertEquals(1, result.type)
+            assertEquals(71, result.code)
+            assertEquals("FAILURE_MULTISIG_NOT_A_COSIGNER", result.message)
         }
     }
 }

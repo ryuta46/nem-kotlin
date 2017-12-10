@@ -32,9 +32,20 @@ class Settings {
         const val TEST_WEB_SOCKET = "http://104.128.226.60:7778"
         //const val TEST_HOST = "http://bob.nem.ninja:7778"
 
+        // Test main account
         const val ADDRESS = "TDDYOPCS46Z5STBF3F5OI5PA2JE52JO6XVXICZIR"
         const val PRIVATE_KEY = ""
         const val PUBLIC_KEY = "7dde4bc3e7be43fc42c9579c0425da8528552e8d5f19a2533611b589e576f15f"
+
+        // Multisig account
+        const val MULTISIG_ADDRESS = "TA6CNQUQJZ4OIY3W7T5RCSJUYQMCCNR4HKGPUUE6"
+        const val MULTISIG_PRIVATE_KEY = ""
+        const val MULTISIG_PUBLIC_KEY = "ef60a3aec6fa82f60661958e79f36adaf01378d455367949f827597ea6bceea8"
+
+        // Multisig signer account
+        const val SIGNER_ADDRESS = "TCESVNPDCV67YDDBKJQ6OXF5HMZHENY3DO2E662L"
+        const val SIGNER_PRIVATE_KEY = ""
+        const val SIGNER_PUBLIC_KEY = "c6d0577111a52889e6cb414372a298bfe17fbd6e0d2eaa7437ab3ff7751fdbfa"
 
         const val RECEIVER = "TCRUHA3423WEYZN64CZ62IVK53VQ5JGIRJT5UMAE"
     }

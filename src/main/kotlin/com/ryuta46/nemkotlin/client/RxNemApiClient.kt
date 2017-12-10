@@ -158,7 +158,7 @@ class RxNemApiClient(hostUrl: String,
      * @see NemApiClient.accountNamespacePage
      */
     fun accountNamespacePage(address: String, parent: String = "", id: Int = -1, pageSize: Int = -1): Observable<List<Namespace>> =
-            observe { syncClient.accountNamespacePage(address, parent, id) }
+            observe { syncClient.accountNamespacePage(address, parent, id, pageSize) }
 
     /**
      * @see NemApiClient.accountMosaicOwned
