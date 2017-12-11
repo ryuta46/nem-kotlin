@@ -186,7 +186,7 @@ val result = client.transactionAnnounce(transaction)
 
 ```kotlin
 val response = client.namespaceMosaicDefinitionFromName(namespaceId, name)
-if (mosaicDefinition != null) {
+if (response != null) {
     supply = response.mosaic.initialSupply!!
     divisibility = response.mosaic.divisibility!!
 }
