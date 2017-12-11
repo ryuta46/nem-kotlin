@@ -338,7 +338,8 @@ class NemApiClientTest {
         if (Settings.PRIVATE_KEY.isEmpty()) {
             val ownerAccount = AccountGenerator.fromRandomSeed(Version.Test)
             val multisigRequest = TransactionHelper.createMultisigAggregateModificationTransaction(multisig, Version.Test,
-                    modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, ownerAccount.publicKeyString)))
+                    modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, ownerAccount.publicKeyString)),
+                    minimumCosignatoriesModification = 1)
 
             val multisigResult = client.transactionAnnounce(multisigRequest)
             printModel(multisigResult)
