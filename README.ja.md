@@ -142,7 +142,7 @@ val rxClient = RxNemApiClient("http://62.75.251.134:7890")
 ```
 
 
-### Getting an account information
+### アカウント情報の取得
 
 API クライアントは NEM の API に対応したメソッドを持っています。
 
@@ -160,7 +160,7 @@ rxClient.accountGet(account.address)
     }
 ```
 
-### Sending XEM and Mosaics
+### XEM、モザイクの送金
 
 送金など、署名が必要なトランザクションの生成は 'TransactionHelper' を使います。
 
@@ -191,6 +191,38 @@ if (mosaicDefinition != null) {
     divisibility = response.mosaic.divisibility!!
 }
 ```
+
+### マルチシグ関連
+
+マルチシグ関連のトランザクション(MultisigTransaction, MultisigSignatureTransaction, MultisigAggreageModificationTransaction) も TransactionHelper で作成します。
+
+アカウントをマルチシグアカウントに変更する場合
+```kotlin
+val multisigRequest = TransactionHelper.createMultisigAggregateModificationTransaction(account,
+    modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, signerAccount.publicKeyString)),
+    minimumCosignatoriesModification = 1)
+
+val multisigResult = client.transactionAnnounce(multisigRequest)
+```
+**マルチシグアカウントを通常アカウントに戻す方法はありませんのでご注意ください。**
+
+マルチシグアカウントからXEMを送金する場合
+```kotlin
+// Create inner transaction of which transfers XEM
+val transferTransaction = TransactionHelper.createXemTransferTransactionObject(multisigAccountPublicKey, receiverAddress, amount)
+
+// Create multisig transaction
+val multisigRequest = TransactionHelper.createMultisigTransaction(signerAccount, transferTransaction)
+val multisigResult = client.transactionAnnounce(multisigRequest)
+```
+
+さらに、そのトランザクションに署名を行う場合
+```kotlin
+val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(anotherSignerAccount, innerTransactionHash, multisigAccountAddress)
+val signatureResult = client.transactionAnnounce(signatureRequest)
+```
+
+innerTransactionHash は `client.accountUnconfirmedTransactions(anotherSignerAddress)` にて取得できます。
 
 ### その他の API
 
@@ -256,3 +288,5 @@ subscription.dispose()
 
 Twitter [@ryuta461](https://twitter.com/ryuta461)
 
+寄付アドレス:
+NAEZYI6YPR4YIRN4EAWSP3GEYU6ATIXKTXSVBEU5
