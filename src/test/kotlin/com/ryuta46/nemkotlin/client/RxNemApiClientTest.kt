@@ -184,7 +184,7 @@ class RxNemApiClientTest {
 
         assertEquals("LOCKED", result.status)
         assertEquals("INACTIVE", result.remoteStatus)
-        assertTrue(result.cosignatoryOf.isEmpty())
+        assertTrue(result.cosignatoryOf.isNotEmpty())
         assertTrue(result.cosignatories.isEmpty())
     }
 
@@ -194,7 +194,8 @@ class RxNemApiClientTest {
 
         assertTrue(result.isNotEmpty())
         result.forEach {
-            assertEquals(Settings.ADDRESS, it.transaction.recipient)
+            val transfer = it.transaction.asTransfer ?: it.transaction.asMultisig?.otherTrans?.asTransfer ?: return@forEach
+            assertEquals(Settings.ADDRESS, transfer.recipient)
         }
     }
 
@@ -214,7 +215,8 @@ class RxNemApiClientTest {
 
         assertTrue(result.isNotEmpty())
         result.forEach {
-            assertTrue(Settings.PUBLIC_KEY == it.transaction.signer || Settings.ADDRESS == it.transaction.recipient)
+            val transfer = it.transaction.asTransfer ?: it.transaction.asMultisig?.otherTrans?.asTransfer ?: return@forEach
+            assertTrue(Settings.PUBLIC_KEY == transfer.signer || Settings.ADDRESS == transfer.recipient)
         }
 
     }
