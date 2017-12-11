@@ -21,30 +21,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-
 package com.ryuta46.nemkotlin.model
 
 /**
- * A block is the structure that contains the transaction information.
- *
- * @property timeStamp The number of seconds elapsed since the creation of the nemesis block.
- * @property signature The signature of the block.
- * @property prevBlockHash The sha3-256 hash of the last block as hex-string.
- * @property type The block type. There are currently two block types used:
- * -1: Only the nemesis block has this type.
- * 1: Regular block type.
- * @property transactions The array of transaction structures.
- * @property version The block version.
- * @property signer The public key of the harvester of the block as hexadecimal number.
- * @property height The height of the block. Each block has a unique height. Subsequent blocks differ in height by 1.
+ * Before a mosaic can be created or transferred, a corresponding definition of the mosaic has to be created and published to the network.
+ * @property creationFee The fee for the creation of the mosaic.
+ * @property creationFeeSink The public key of the account to which the creation fee is transferred.
+ * @property mosaicDefinition The actual mosaic definition.
  */
-data class Block(
-        val timeStamp: Int,
-        val signature: String,
-        val prevBlockHash: TransactionHash,
-        val type: Int,
-        val transactions: List<GeneralTransaction>,
-        val version: Int,
-        val signer: String,
-        val height: Int
-)
+class MosaicDefinitionCreationTransaction(common: Transaction,
+                                          val creationFee: Long,
+                                          val creationFeeSink: String,
+                                          val mosaicDefinition: MosaicDefinition
+) : Transaction by common

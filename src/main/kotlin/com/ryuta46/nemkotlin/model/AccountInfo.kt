@@ -41,5 +41,6 @@ data class AccountInfo(
         val importance: Double,
         val publicKey: String,
         val label: String?,
-        val harvestedBlocks: Int
+        val harvestedBlocks: Int,
+        val multisigInfo: MultisigInfo = MultisigInfo()
 )

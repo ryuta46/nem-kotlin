@@ -32,5 +32,5 @@ package com.ryuta46.nemkotlin.model
  */
 data class UnconfirmedTransactionMetaDataPair (
         val meta: UnconfirmedTransactionMetaData,
-        val transaction: Transaction
+        val transaction: GeneralTransaction
 )

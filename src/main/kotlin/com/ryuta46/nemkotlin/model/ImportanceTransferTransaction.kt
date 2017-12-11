@@ -24,27 +24,17 @@
 
 package com.ryuta46.nemkotlin.model
 
+
 /**
- * A block is the structure that contains the transaction information.
+ * Importance transfer transactions are part of the secure harvesting feature of NEM.
+ * Once an importance transaction has been included in a block it needs 6 hours to become active.
  *
- * @property timeStamp The number of seconds elapsed since the creation of the nemesis block.
- * @property signature The signature of the block.
- * @property prevBlockHash The sha3-256 hash of the last block as hex-string.
- * @property type The block type. There are currently two block types used:
- * -1: Only the nemesis block has this type.
- * 1: Regular block type.
- * @property transactions The array of transaction structures.
- * @property version The block version.
- * @property signer The public key of the harvester of the block as hexadecimal number.
- * @property height The height of the block. Each block has a unique height. Subsequent blocks differ in height by 1.
+ * @property mode The mode. Possible values are:
+ * 1: Activate remote harvesting.
+ * 2: Deactivate remote harvesting.
+ * @property remoteAccount The public key of the receiving account as hexadecimal string.
  */
-data class Block(
-        val timeStamp: Int,
-        val signature: String,
-        val prevBlockHash: TransactionHash,
-        val type: Int,
-        val transactions: List<GeneralTransaction>,
-        val version: Int,
-        val signer: String,
-        val height: Int
-)
+class ImportanceTransferTransaction(common: Transaction,
+                                    val mode: Int,
+                                    val remoteAccount: String
+) : Transaction by common

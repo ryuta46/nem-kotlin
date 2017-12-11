@@ -25,26 +25,15 @@
 package com.ryuta46.nemkotlin.model
 
 /**
- * A block is the structure that contains the transaction information.
- *
- * @property timeStamp The number of seconds elapsed since the creation of the nemesis block.
- * @property signature The signature of the block.
- * @property prevBlockHash The sha3-256 hash of the last block as hex-string.
- * @property type The block type. There are currently two block types used:
- * -1: Only the nemesis block has this type.
- * 1: Regular block type.
- * @property transactions The array of transaction structures.
- * @property version The block version.
- * @property signer The public key of the harvester of the block as hexadecimal number.
- * @property height The height of the block. Each block has a unique height. Subsequent blocks differ in height by 1.
+ * In case a mosaic definition has the property 'supplyMutable' set to true, the creator of the mosaic definition can change the supply, i.e. increase or decrease the supply.
+ * @property supplyType The supply type. Supported supply types are:
+ * 1: Increase in supply.
+ * 2: Decrease in supply.
+ * @property delta The supply change in units for the mosaic.
+ * @property mosaicId The mosaic id.
  */
-data class Block(
-        val timeStamp: Int,
-        val signature: String,
-        val prevBlockHash: TransactionHash,
-        val type: Int,
-        val transactions: List<GeneralTransaction>,
-        val version: Int,
-        val signer: String,
-        val height: Int
-)
+class MosaicSupplyChangeTransaction(common: Transaction,
+                                    val supplyType: Int,
+                                    val delta: Long,
+                                    val mosaicId: MosaicId
+) : Transaction by common

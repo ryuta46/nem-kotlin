@@ -30,5 +30,5 @@ package com.ryuta46.nemkotlin.model
  */
 data class TransactionMetaDataPair(
         val meta: TransactionMetaData,
-        val transaction: Transaction
+        val transaction: GeneralTransaction
 )

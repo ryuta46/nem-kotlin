@@ -25,26 +25,12 @@
 package com.ryuta46.nemkotlin.model
 
 /**
- * A block is the structure that contains the transaction information.
- *
- * @property timeStamp The number of seconds elapsed since the creation of the nemesis block.
- * @property signature The signature of the block.
- * @property prevBlockHash The sha3-256 hash of the last block as hex-string.
- * @property type The block type. There are currently two block types used:
- * -1: Only the nemesis block has this type.
- * 1: Regular block type.
- * @property transactions The array of transaction structures.
- * @property version The block version.
- * @property signer The public key of the harvester of the block as hexadecimal number.
- * @property height The height of the block. Each block has a unique height. Subsequent blocks differ in height by 1.
+ * Multisig cosignatory modifications are part of the NEM's multisig account system.
+ * With a multisig cosignatory modification a cosignatory is added to or deleted from a multisig account.
+ * @property modificationType The type of modification. Possible values are:
+ * 1: Add a new cosignatory.
+ * 2: Delete an existing cosignatory.
+ * @property cosignatoryAccount The public key of the cosignatory account as hexadecimal string.
  */
-data class Block(
-        val timeStamp: Int,
-        val signature: String,
-        val prevBlockHash: TransactionHash,
-        val type: Int,
-        val transactions: List<GeneralTransaction>,
-        val version: Int,
-        val signer: String,
-        val height: Int
-)
+data class MultisigCosignatoryModification(val modificationType: Int, val cosignatoryAccount: String)
+

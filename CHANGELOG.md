@@ -1,4 +1,19 @@
 
+## Version 0.3.0
+
+2017-12-12
+
+* Change: Transaction -> GeneralTransaction.
+* Add: Multisig related transactions.
+* Add: "multisigInfo" parameter in AccountInfo.
+* Fix: "pageSize" parameter of accountNamespacePage API in RxNemApiClient doesn't work.
+
+## Version 0.2.2
+
+2017-12-05
+
+* Add: Data models of each transaction type.
+
 ## Version 0.2.1
 
 2017-12-03

@@ -192,6 +192,38 @@ if (response != null) {
 }
 ```
 
+### Multisig related transactions
+
+Multisig related transactions(MultisigTransaction, MultisigSignatureTransaction, MultisigAggreageModificationTransaction) are also created by TransactionHelper.
+
+To change an account to multisig account,
+```kotlin
+val multisigRequest = TransactionHelper.createMultisigAggregateModificationTransaction(account,
+    modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, signerAccount.publicKeyString)),
+    minimumCosignatoriesModification = 1)
+
+val multisigResult = client.transactionAnnounce(multisigRequest)
+```
+**Note that there is no way to change multisig account to normal account.**
+
+To send XEM from multisig account,
+```kotlin
+// Create inner transaction of which transfers XEM
+val transferTransaction = TransactionHelper.createXemTransferTransactionObject(multisigAccountPublicKey, receiverAddress, amount)
+
+// Create multisig transaction
+val multisigRequest = TransactionHelper.createMultisigTransaction(signerAccount, transferTransaction)
+val multisigResult = client.transactionAnnounce(multisigRequest)
+```
+
+And to sign the transaction,
+```kotlin
+val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(anotherSignerAccount, innerTransactionHash, multisigAccountAddress)
+val signatureResult = client.transactionAnnounce(signatureRequest)
+```
+
+You can get innerTransactionHash with `client.accountUnconfirmedTransactions(anotherSignerAddress)`
+
 ### More APIs
 
 If there is no method corresponding to the api you want to use, you can use 'get' or 'post' method of the client.
@@ -256,3 +288,5 @@ subscription.dispose()
 
 Twitter [@ryuta461](https://twitter.com/ryuta461)
 
+Donation Address:
+NAEZYI6YPR4YIRN4EAWSP3GEYU6ATIXKTXSVBEU5
