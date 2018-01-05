@@ -22,7 +22,7 @@ nem-kotlin は NEM(New Economy Movement) のAPIを簡単に使うためのライ
 gradle を使う場合: (gradle のバージョン 2.x を使う場合は、 'implmentaion' のかわりに 'compile' を指定してください)
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.1.0'
+implementation 'com.ryuta46:nem-kotlin:0.3.1'
 ```
 
 maven を使う場合:
@@ -31,7 +31,7 @@ maven を使う場合:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.1.0</version>
+  <version>0.3.1</version>
 </dependency>
 ```
 
