@@ -32,7 +32,7 @@ dependencies {
     kapt 'com.jakewharton:butterknife-compiler:8.8.1'
 
     // nem-kotlin
-    implementation 'com.ryuta46:nem-kotlin:0.2.0'
+    implementation 'com.ryuta46:nem-kotlin:0.3.1'
 
     // depended libraries
     implementation 'com.madgag.spongycastle:prov:1.51.0.0'
