@@ -37,8 +37,9 @@ class HttpURLConnectionClient : HttpClient {
 
         try {
             connection.requestMethod = request.method
-            request.properties.forEach { key, value ->
-                connection.setRequestProperty(key, value)
+
+            for (entry in request.properties) {
+                connection.setRequestProperty(entry.key, entry.value)
             }
 
             if (request.body.isNotEmpty()) {

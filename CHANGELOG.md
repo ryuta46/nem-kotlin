@@ -1,3 +1,8 @@
+## Version 0.3.1
+
+2018-01-06
+
+* Fix: HttpURLConnectionClient doesn't work on Android when the API level is lower than 24.
 
 ## Version 0.3.0
 
