@@ -49,7 +49,7 @@ import java.net.URI
  */
 class NemApiClient(val hostUrl: String,
                    val httpClient: HttpClient = HttpURLConnectionClient(),
-                   private val logger: Logger = NoOutputLogger()) {
+                   val logger: Logger = NoOutputLogger()) {
 
     val logWrapper = LogWrapper(logger, this::class.java.simpleName)
 
@@ -63,37 +63,7 @@ class NemApiClient(val hostUrl: String,
      */
     inline fun <reified T : Any>get(path: String, queries: Map<String, String> = emptyMap()): T {
         val uri = URI(NetworkUtils.createUrlString(hostUrl, path, queries))
-
-        logWrapper.i("get request url = $uri")
-        val request = HttpRequest(
-                uri = uri,
-                method = "GET",
-                body = "",
-                properties = emptyMap())
-
-        val response: HttpResponse
-        try {
-            response = httpClient.load(request)
-        } catch (e: Throwable) {
-            logWrapper.e(e.message ?: "Some error occurred during communcation with NIS.")
-            throw e
-        }
-
-        if (response.status != HttpURLConnection.HTTP_OK) {
-            val message = "Illegal response status: ${response.status} ${response.body}"
-            logWrapper.e(message)
-            throw NetworkException(message)
-        }
-
-        val responseString = response.body
-        try {
-            logWrapper.i("response = $responseString")
-            return Gson().fromJson(responseString, T::class.java)
-        } catch (e: JsonParseException) {
-            val message = "Failed to parse response: $responseString"
-            logWrapper.e(message)
-            throw ParseException(message)
-        }
+        return NetworkUtils.get(uri, httpClient, logger)
     }
 
     /**
@@ -107,39 +77,7 @@ class NemApiClient(val hostUrl: String,
      */
     inline fun <R, reified S : Any>post(path: String, body: R, queries: Map<String, String> = emptyMap()): S {
         val uri = URI(NetworkUtils.createUrlString(hostUrl, path, queries))
-        val requestBodyString = Gson().toJson(body)
-
-        logWrapper.i("post request url = $uri, body = $requestBodyString")
-        val request = HttpRequest(
-                uri = uri,
-                method = "POST",
-                body = requestBodyString,
-                properties = mapOf("Content-Type" to "application/json; charset=utf-8")
-        )
-
-        val response: HttpResponse
-        try {
-            response = httpClient.load(request)
-        } catch (e: Throwable) {
-            logWrapper.e(e.message ?: "Some error occurred during communcation with NIS.")
-            throw e
-        }
-
-        if (response.status != HttpURLConnection.HTTP_OK) {
-            val message = "Illegal response status: ${response.status}"
-            logWrapper.e(message)
-            throw NetworkException(message)
-        }
-
-        val responseString = response.body
-        try {
-            logWrapper.i("response = $responseString")
-            return Gson().fromJson(responseString, S::class.java)
-        } catch (e: JsonParseException) {
-            val message = "Failed to parse response: $responseString"
-            logWrapper.e(message)
-            throw ParseException(message)
-        }
+        return NetworkUtils.post(uri, body, httpClient, logger)
     }
 
 
