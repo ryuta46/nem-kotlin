@@ -22,11 +22,8 @@ Download the latest jar
 for gradle users: (If you use gradle versioned 2.x, specify 'compile' instead of 'implmentaion')
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.3.1'
+implementation 'com.ryuta46:nem-kotlin:0.4.0'
 ```
-
-
-
 
 for maven users:
 
@@ -34,76 +31,9 @@ for maven users:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.3.1</version>
+  <version>0.4.0</version>
 </dependency>
 ```
-
-### Setup depended libraries
-
-nem-kotlin depends gson, spongy castle and eddsa library.
-
-If you want to use reactive client, download RxJava too.
-
-If you want to use WebSocket client, download RxJava and Java-WebSocket too.
-
-To use nem-kotlin, download them
-
-for gradle users:
-
-```gradle
-implementation 'com.madgag.spongycastle:prov:1.51.0.0'
-implementation 'com.madgag.spongycastle:core:1.51.0.0'
-implementation 'net.i2p.crypto:eddsa:0.2.0'
-implementation 'com.google.code.gson:gson:2.8.2'
-
-// for reactive client or WebSocket client users
-implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
-implementation 'io.reactivex.rxjava2:rxkotlin:2.1.0'
-
-// for WebSocket client users
-implementation 'org.java-websocket:Java-WebSocket:1.3.6'
-```
-
-for maven users:
-
-```xml
-<dependency>
-  <groupId>com.google.code.gson</groupId>
-  <artifactId>gson</artifactId>
-  <version>2.8.2</version>
-</dependency>
-<dependency>
-  <groupId>com.madgag.spongycastle</groupId>
-  <artifactId>prov</artifactId>
-  <version>1.51.0.0</version>
-</dependency>
-<dependency>
-  <groupId>com.madgag.spongycastle</groupId>
-  <artifactId>core</artifactId>
-  <version>1.51.0.0</version>
-</dependency>
-<dependency>
-  <groupId>net.i2p.crypto</groupId>
-  <artifactId>eddsa</artifactId>
-  <version>0.2.0</version>
-</dependency>
-<dependency>
-  <groupId>io.reactivex.rxjava2</groupId>
-  <artifactId>rxjava</artifactId>
-  <version>2.1.0</version>
-</dependency>
-<dependency>
-  <groupId>io.reactivex.rxjava2</groupId>
-  <artifactId>rxkotlin</artifactId>
-  <version>2.1.0</version>
-</dependency>
-<dependency>
-  <groupId>org.java-websocket</groupId>
-  <artifactId>Java-WebSocket</artifactId>
-  <version>1.3.6</version>
-</dependency>
-```
-
 
 ## How to use
 
@@ -191,6 +121,41 @@ if (response != null) {
     divisibility = response.mosaic.divisibility!!
 }
 ```
+
+### Sending and Receiving message.
+
+To send XEM with a plain text message,
+```kotlin
+val message = "message".toByteArray(Charsets.UTF_8)
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
+        message = message,
+        messageType = MessageType.Plain)
+val result = client.transactionAnnounce(transaction)
+```
+
+With a encrypted message,
+```kotlin
+val message = MessageEncryption.encrypt(account, receiverPublicKey, "message".toByteArray(Charsets.UTF_8))
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
+        message = message,
+        messageType = MessageType.Encrypted)
+val result = client.transactionAnnounce(transaction)
+```
+
+You can read message from a transaction as follows
+```
+val message = transaction.asTransfer?.message ?: return
+
+if (message.type == MessageType.Plain.rawValue) {
+    // for plain text message
+    val plainTextMessage = String(ConvertUtils.toByteArray(message.payload), Charsets.UTF_8)
+} else {
+    // for encrypted text message
+    val decryptedBytes = MessageEncryption.decrypt(account, senderPublicKey, ConvertUtils.toByteArray(message.payload))
+    val encryptedTextMessage = String(decryptedBytes, Charsets.UTF_8)
+}
+```
+
 
 ### Multisig related transactions
 

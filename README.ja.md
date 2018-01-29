@@ -22,7 +22,7 @@ nem-kotlin は NEM(New Economy Movement) のAPIを簡単に使うためのライ
 gradle を使う場合: (gradle のバージョン 2.x を使う場合は、 'implmentaion' のかわりに 'compile' を指定してください)
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.3.1'
+implementation 'com.ryuta46:nem-kotlin:0.4.0'
 ```
 
 maven を使う場合:
@@ -31,73 +31,7 @@ maven を使う場合:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.3.1</version>
-</dependency>
-```
-
-### 依存ライブラリのセットアップ
-
-nem-kotlin は gson と spongy castle、eddsa ライブラリに依存しています。
-
-また、Reactive なクライアントを使う場合は、RxJava も必要です。
-
-WebSocket を利用する場合は、RxJava と Java-WebSocket が必要です。
-
-これら依存ライブラリをセットアップする方法は下記の通り。
-
-gradle を使う場合:
-
-```gradle
-implementation 'com.madgag.spongycastle:prov:1.51.0.0'
-implementation 'com.madgag.spongycastle:core:1.51.0.0'
-implementation 'net.i2p.crypto:eddsa:0.2.0'
-implementation 'com.google.code.gson:gson:2.8.2'
-
-// for reactive client or WebSocket client users
-implementation 'io.reactivex.rxjava2:rxandroid:2.0.1'
-implementation 'io.reactivex.rxjava2:rxkotlin:2.1.0'
-
-// for WebSocket client users
-implementation 'org.java-websocket:Java-WebSocket:1.3.6'
-```
-
-maven を使う場合:
-
-```xml
-<dependency>
-  <groupId>com.google.code.gson</groupId>
-  <artifactId>gson</artifactId>
-  <version>2.8.2</version>
-</dependency>
-<dependency>
-  <groupId>com.madgag.spongycastle</groupId>
-  <artifactId>prov</artifactId>
-  <version>1.51.0.0</version>
-</dependency>
-<dependency>
-  <groupId>com.madgag.spongycastle</groupId>
-  <artifactId>core</artifactId>
-  <version>1.51.0.0</version>
-</dependency>
-<dependency>
-  <groupId>net.i2p.crypto</groupId>
-  <artifactId>eddsa</artifactId>
-  <version>0.2.0</version>
-</dependency>
-<dependency>
-  <groupId>io.reactivex.rxjava2</groupId>
-  <artifactId>rxjava</artifactId>
-  <version>2.1.0</version>
-</dependency>
-<dependency>
-  <groupId>io.reactivex.rxjava2</groupId>
-  <artifactId>rxkotlin</artifactId>
-  <version>2.1.0</version>
-</dependency>
-<dependency>
-  <groupId>org.java-websocket</groupId>
-  <artifactId>Java-WebSocket</artifactId>
-  <version>1.3.6</version>
+  <version>0.4.0</version>
 </dependency>
 ```
 
@@ -191,6 +125,41 @@ if (response != null) {
     divisibility = response.mosaic.divisibility!!
 }
 ```
+
+### メッセージの送受信
+
+平文のメッセージを含めて XEM 送信を行う場合
+```kotlin
+val message = "message".toByteArray(Charsets.UTF_8)
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
+        message = message,
+        messageType = MessageType.Plain)
+val result = client.transactionAnnounce(transaction)
+```
+
+暗号化メッセージを含めて XEM 送信を行う場合
+```kotlin
+val message = MessageEncryption.encrypt(account, receiverPublicKey, "message".toByteArray(Charsets.UTF_8))
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
+        message = message,
+        messageType = MessageType.Encrypted)
+val result = client.transactionAnnounce(transaction)
+```
+
+受信したトランザクションからメッセージを読み取るには、下記のように実装します。
+```
+val message = transaction.asTransfer?.message ?: return
+
+if (message.type == MessageType.Plain.rawValue) {
+    // for plain text message
+    val plainTextMessage = String(ConvertUtils.toByteArray(message.payload), Charsets.UTF_8)
+} else {
+    // for encrypted text message
+    val decryptedBytes = MessageEncryption.decrypt(account, senderPublicKey, ConvertUtils.toByteArray(message.payload))
+    val encryptedTextMessage = String(decryptedBytes, Charsets.UTF_8)
+}
+```
+
 
 ### マルチシグ関連
 

@@ -31,7 +31,7 @@ import org.junit.Test
 
 class NisUtilsTest {
     @Test fun getSuperNodes() {
-        val actual = NisUtils.getSuperNodes(logger = StandardLogger()).blockingGet()
+        val actual = NisUtils.getSuperNodes(logger = StandardLogger()).blockingFirst()
         printModel(actual)
 
         val clients = actual.map { NemApiClient("http://${it.ip}:${it.nisPort}", logger = StandardLogger()) }
