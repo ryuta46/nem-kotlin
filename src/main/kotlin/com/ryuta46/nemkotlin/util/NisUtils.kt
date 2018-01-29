@@ -27,7 +27,7 @@ package com.ryuta46.nemkotlin.util
 import com.ryuta46.nemkotlin.model.NodeInfo
 import com.ryuta46.nemkotlin.net.HttpClient
 import com.ryuta46.nemkotlin.net.HttpURLConnectionClient
-import io.reactivex.Single
+import io.reactivex.Observable
 import java.net.URI
 
 
@@ -51,15 +51,16 @@ class NisUtils {
         @JvmStatic fun getSuperNodes(
                 nodeListUrl: String = "https://supernodes.nem.io/nodes/",
                 httpClient: HttpClient = HttpURLConnectionClient(),
-                logger: Logger = NoOutputLogger()) : Single<List<NodeInfo>> {
-            return Single.create { subscriber ->
+                logger: Logger = NoOutputLogger()) : Observable<List<NodeInfo>> {
+            return Observable.create { subscriber ->
                 try {
                     val uri = URI(nodeListUrl)
                     val response = NetworkUtils.get<NodeInfoArray>(uri, httpClient, logger)
-                    subscriber.onSuccess(response.nodes)
+                    subscriber.onNext(response.nodes)
                 } catch (e: Throwable) {
                     subscriber.onError(e)
                 }
+                subscriber.onComplete()
             }
         }
         /**

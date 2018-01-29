@@ -29,6 +29,7 @@ import com.ryuta46.nemkotlin.enums.MessageType
 import com.ryuta46.nemkotlin.enums.TransactionType
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.model.*
+import com.ryuta46.nemkotlin.util.ConvertUtils
 import com.ryuta46.nemkotlin.util.ConvertUtils.Companion.toHexString
 import java.util.*
 
@@ -59,7 +60,7 @@ class TransactionHelper {
          */
         @JvmStatic fun createXemTransferTransactionObject(publicKey: String, receiverAddress: String, microNem: Long,
                                                           version: Version = Version.Main,
-                                                          message: String = "", messageType: MessageType = MessageType.Plain,
+                                                          message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
                                                           fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): TransferTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
@@ -79,7 +80,7 @@ class TransactionHelper {
                     microNem,
                     receiverAddress,
                     emptyList(), // No mosaic attachment
-                    Message(message, messageType.rawValue))
+                    Message(ConvertUtils.toHexString(message), messageType.rawValue))
         }
 
         /**
@@ -96,7 +97,7 @@ class TransactionHelper {
          */
         @JvmStatic fun createXemTransferTransaction(sender: Account, receiverAddress: String, microNem: Long,
                                                     version: Version = Version.Main,
-                                                    message: String = "", messageType: MessageType = MessageType.Plain,
+                                                    message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
                                                     fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
             return createRequestAnnounce(sender,
                     createXemTransferTransactionObject(sender.publicKeyString,
@@ -122,7 +123,7 @@ class TransactionHelper {
          */
         @JvmStatic fun createMosaicTransferTransactionObject(publicKey: String, receiverAddress: String, mosaics: List<MosaicAttachment>,
                                                              version: Version = Version.Main,
-                                                             message: String = "", messageType: MessageType = MessageType.Plain,
+                                                             message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
                                                              fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): TransferTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
@@ -149,7 +150,7 @@ class TransactionHelper {
                     1_000_000L, // amount is always 1,000,000
                     receiverAddress,
                     mosaics.map { Mosaic(MosaicId(it.namespaceId, it.name), it.quantity) },
-                    Message(message, messageType.rawValue))
+                    Message(ConvertUtils.toHexString(message), messageType.rawValue))
         }
 
         /**
@@ -165,9 +166,9 @@ class TransactionHelper {
          * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMosaicTransferTransaction(sender: Account, receiverAddress: String, mosaics: List<MosaicAttachment>,
-                                                    version: Version = Version.Main,
-                                                    message: String = "", messageType: MessageType = MessageType.Plain,
-                                                    fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+                                                       version: Version = Version.Main,
+                                                       message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
+                                                       fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
             return createRequestAnnounce(sender,
                     createMosaicTransferTransactionObject(sender.publicKeyString,
                             receiverAddress,
@@ -375,9 +376,9 @@ class TransactionHelper {
          * @param message The message.
          * @return Micro nem unit transfer fee.
          */
-        @JvmStatic fun calculateMessageTransferFee(message: String): Long {
+        @JvmStatic fun calculateMessageTransferFee(message: ByteArray): Long {
             return if (message.isNotEmpty()) {
-                transferFeeFactor * (1L + message.toByteArray(Charsets.UTF_8).size / 32L)
+                transferFeeFactor * (1L + message.size / 32L)
             } else {
                 0L
             }

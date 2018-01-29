@@ -31,11 +31,14 @@ import com.ryuta46.nemkotlin.TestUtils.Companion.checkResultIsMultisigNotACosign
 import com.ryuta46.nemkotlin.TestUtils.Companion.waitUntil
 import com.ryuta46.nemkotlin.TestUtils.Companion.waitUntilNotNull
 import com.ryuta46.nemkotlin.account.AccountGenerator
+import com.ryuta46.nemkotlin.account.MessageEncryption
+import com.ryuta46.nemkotlin.enums.MessageType
 import com.ryuta46.nemkotlin.enums.ModificationType
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.exceptions.NetworkException
 import com.ryuta46.nemkotlin.model.AccountMetaDataPair
 import com.ryuta46.nemkotlin.model.MultisigCosignatoryModification
+import com.ryuta46.nemkotlin.model.Transaction
 import com.ryuta46.nemkotlin.model.TransactionMetaDataPair
 import com.ryuta46.nemkotlin.transaction.MosaicAttachment
 import com.ryuta46.nemkotlin.transaction.TransactionHelper
@@ -57,10 +60,17 @@ class NemApiClientTest {
         @DataPoints
         @JvmStatic
         fun getTransferTransactionAnnounceFixture() = arrayOf(
-                TransferTransactionAnnounceFixture(1, "", emptyList()),
-                TransferTransactionAnnounceFixture(0, "test", emptyList()),
-                TransferTransactionAnnounceFixture(0, "", listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6)))
+                TransferTransactionAnnounceFixture(1, "", MessageType.Plain, emptyList()),
+                TransferTransactionAnnounceFixture(0, "test", MessageType.Plain, emptyList()),
+                TransferTransactionAnnounceFixture(0, "TEST ENCRYPT MESSAGE", MessageType.Encrypted, emptyList()),
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6)))
         )
+
+        @DataPoints @JvmStatic fun getReadMessageFixture() = arrayOf(
+                ReadMessageFixture("9eda9271565628765caf51e9c89fadb41ed7413ed94c62e4d75870f1197d3872", "TEST PLAIN TEXT MESSAGE"),
+                ReadMessageFixture("e19c81ec1ab9d2c96edd5418933054e2edfedd483d530324acab533153e09db3", "TEST ENCRYPTED MESSAGE")
+        )
+
     }
 
     private val client: NemApiClient
@@ -302,7 +312,7 @@ class NemApiClientTest {
     }
 
 
-    data class TransferTransactionAnnounceFixture(val xem: Long, val message: String, val mosaics: List<MosaicAttachment>)
+    data class TransferTransactionAnnounceFixture(val xem: Long, val message: String, val messageType: MessageType, val mosaics: List<MosaicAttachment>)
 
     @Theory
     fun transferTransactionAnnounce(fixture: TransferTransactionAnnounceFixture) {
@@ -311,9 +321,18 @@ class NemApiClientTest {
                 else AccountGenerator.fromRandomSeed(Version.Test)
 
 
+        val message = when(fixture.messageType) {
+            MessageType.Plain -> fixture.message.toByteArray(Charsets.UTF_8)
+            MessageType.Encrypted -> {
+                MessageEncryption.encrypt(account,
+                        ConvertUtils.toByteArray(Settings.RECEIVER_PUBLIC),
+                        fixture.message.toByteArray(Charsets.UTF_8))
+            }
+        }
+
         val request = when {
-            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, fixture.message)
-            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, fixture.message)
+            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType)
+            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, message, fixture.messageType)
         }
 
         val result = client.transactionAnnounce(request)
@@ -530,5 +549,47 @@ class NemApiClientTest {
         printModel(signatureResult)
         checkResult(signatureResult)
     }
+
+
+    data class ReadMessageFixture(val transactionHash: String, val expected: String)
+
+
+    // read message
+    @Theory fun readMessage(fixture: ReadMessageFixture) {
+
+        var hash = ""
+        var transaction: TransactionMetaDataPair? = null
+        do {
+            val transactions = client.accountTransfersIncoming(Settings.ADDRESS, hash = hash)
+            transactions.forEach {
+                if (it.meta.hash.data == fixture.transactionHash) {
+                    transaction = it
+                    return@forEach
+                }
+            }
+            hash = transactions.lastOrNull()?.meta?.hash?.data ?: break
+        } while(transaction != null)
+
+        assertNotNull(transaction)
+
+        val message = transaction!!.transaction.asTransfer?.message
+        assertNotNull(message)
+
+        val actual =
+                if (message!!.type == MessageType.Plain.rawValue) {
+                    String(ConvertUtils.toByteArray(message.payload), Charsets.UTF_8)
+                } else {
+                    val account = if (Settings.PRIVATE_KEY.isNotEmpty()) {
+                        AccountGenerator.fromSeed(toByteArray(Settings.PRIVATE_KEY), Version.Test)
+                    } else {
+                        return@readMessage
+                    }
+                    val decryptedBytes = MessageEncryption.decrypt(account, ConvertUtils.toByteArray(Settings.RECEIVER_PUBLIC), ConvertUtils.toByteArray(message.payload))
+                    String(decryptedBytes, Charsets.UTF_8)
+                }
+
+        assertEquals(fixture.expected, actual)
+    }
+
 
 }

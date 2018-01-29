@@ -24,9 +24,9 @@
 
 package com.ryuta46.nemkotlin.client
 
-import com.google.gson.Gson
 import com.nhaarman.mockito_kotlin.*
 import com.ryuta46.nemkotlin.Settings
+import com.ryuta46.nemkotlin.TestUtils.Companion.printModel
 import com.ryuta46.nemkotlin.TestUtils.Companion.waitUntilNotNull
 import com.ryuta46.nemkotlin.account.AccountGenerator
 import com.ryuta46.nemkotlin.enums.Version
@@ -49,13 +49,6 @@ import org.junit.Test
 import java.net.URI
 
 class RxNemWebSocketClientTest {
-    private fun <T>printModel(model: T) {
-        //val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
-        val jsonString = Gson().toJson(model)
-        println(jsonString)
-    }
-
-
     //private val client = RxNemWebSocketClient("http://bob.nem.ninja:7778", logger = StandardLogger())
     private val client = RxNemWebSocketClient(Settings.TEST_WEB_SOCKET, logger = StandardLogger())
     private val syncClient = NemApiClient(Settings.TEST_HOST, logger = StandardLogger())

@@ -24,12 +24,12 @@
 
 package com.ryuta46.nemkotlin.client
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.ryuta46.nemkotlin.Settings
-import com.ryuta46.nemkotlin.TestUtils
+import com.ryuta46.nemkotlin.TestUtils.Companion.printModel
 import com.ryuta46.nemkotlin.TestUtils.Companion.waitUntilNotNull
 import com.ryuta46.nemkotlin.account.AccountGenerator
+import com.ryuta46.nemkotlin.account.MessageEncryption
+import com.ryuta46.nemkotlin.enums.MessageType
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.exceptions.NetworkException
 import com.ryuta46.nemkotlin.model.AccountMetaDataPair
@@ -48,9 +48,10 @@ class RxNemApiClientTest {
     companion object {
 
         @DataPoints @JvmStatic fun getTransferAnnounceFixture() = arrayOf(
-                TransferAnnounceFixture(1, "", emptyList()),
-                TransferAnnounceFixture(0, "test", emptyList()),
-                TransferAnnounceFixture(0, "", listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6)))
+                TransferAnnounceFixture(1, "", MessageType.Plain, emptyList()),
+                TransferAnnounceFixture(0, "test", MessageType.Plain, emptyList()),
+                TransferAnnounceFixture(0, "TEST ENCRYPT MESSAGE", MessageType.Encrypted, emptyList()),
+                TransferAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6)))
         )
     }
 
@@ -60,12 +61,6 @@ class RxNemApiClientTest {
     private val mainClient: RxNemApiClient
         get() = RxNemApiClient(Settings.MAIN_HOST, logger = StandardLogger())
 
-
-    private fun <T>printModel(model: T) {
-        //val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
-        val jsonString = Gson().toJson(model)
-        println(jsonString)
-    }
 
     @Test
     fun get() {
@@ -312,8 +307,7 @@ class RxNemApiClientTest {
         mainClient.namespaceMosaicDefinitionFromName("ttech", "ryutainvalidinvalid").blockingFirst()
     }
 
-
-    data class TransferAnnounceFixture(val xem: Long, val message: String, val mosaics:List<MosaicAttachment>)
+    data class TransferAnnounceFixture(val xem: Long, val message: String, val messageType: MessageType, val mosaics: List<MosaicAttachment>)
 
     @Theory fun transactionAnnounce(fixture: TransferAnnounceFixture) {
 
@@ -321,9 +315,18 @@ class RxNemApiClientTest {
                 if (Settings.PRIVATE_KEY.isNotEmpty()) AccountGenerator.fromSeed(ConvertUtils.toByteArray(Settings.PRIVATE_KEY), Version.Test)
                 else AccountGenerator.fromRandomSeed(Version.Test)
 
+        val message = when(fixture.messageType) {
+            MessageType.Plain -> fixture.message.toByteArray(Charsets.UTF_8)
+            MessageType.Encrypted -> {
+                MessageEncryption.encrypt(account,
+                        ConvertUtils.toByteArray(Settings.RECEIVER_PUBLIC),
+                        fixture.message.toByteArray(Charsets.UTF_8))
+            }
+        }
+
         val request = when {
-            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, fixture.message)
-            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, fixture.message)
+            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType)
+            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, message, fixture.messageType)
         }
         val result = client.transactionAnnounce(request).blockingFirst()
         printModel(result)
