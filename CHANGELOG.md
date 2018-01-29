@@ -1,3 +1,10 @@
+## Version 0.4.0
+
+2018-01-06
+
+* Add: Encryption and decryption feature for a message in a transfer transaction.
+* Add: Getting super nodes and test nodes function.
+
 ## Version 0.3.1
 
 2018-01-06

@@ -75,6 +75,28 @@ Reactive なクライアントを使いたい場合は、'RxNemApiClient' を使
 val rxClient = RxNemApiClient("http://62.75.251.134:7890")
 ```
 
+### ノード情報の取得
+
+下記のように処理を行うことで、API クライアントのセットアップに必要なスーパーノードの一覧を取得することができます。
+```kotlin
+var nodes: List<NodeInfo> = emptyList()
+NisUtils.getSuperNodes().subscribe {
+    nodes = it
+}
+....
+
+// Select a node and initialize a client with it.
+val node = nodes.first()
+val client = NemApiClient("http://${node.ip}:${node.nisPort}")
+
+// Create clients for all nodes
+val clients = nodes.map { NemApiClient("http://${it.ip}:${it.nisPort}") }
+```
+
+`getSuperNodes()` は、ノードのリストをサーバ( デフォルトは "https://supernodes.nem.io/nodes/")から取得する関数ですので、非同期の処理となっています。.
+
+`getTestNodes()` を使うことで、テストネット用のノードの情報を取得する事もできます。
+この関数は固定のノード情報を返すだけですので、同期的に処理を行います。
 
 ### アカウント情報の取得
 

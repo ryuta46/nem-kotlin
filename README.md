@@ -72,6 +72,29 @@ You can also use reactive client 'RxNemApiClient'.
 val rxClient = RxNemApiClient("http://62.75.251.134:7890")
 ```
 
+### Getting super nodes information
+
+You can get super node list as follows
+```kotlin
+var nodes: List<NodeInfo> = emptyList()
+NisUtils.getSuperNodes().subscribe {
+    nodes = it
+}
+....
+
+// Select a node and initialize a client with it.
+val node = nodes.first()
+val client = NemApiClient("http://${node.ip}:${node.nisPort}")
+
+// Create clients for all nodes
+val clients = nodes.map { NemApiClient("http://${it.ip}:${it.nisPort}") }
+```
+
+`getSuperNodes()` is asynchronous function because it fetches node list from a server ( The default server URL is "https://supernodes.nem.io/nodes/").
+
+You can also get nodes for test net with `getTestNodes()`.
+This function returns nodes list synchronously because the list is fixed.
+
 
 ### Getting an account information
 
