@@ -93,7 +93,7 @@ val client = NemApiClient("http://${node.ip}:${node.nisPort}")
 val clients = nodes.map { NemApiClient("http://${it.ip}:${it.nisPort}") }
 ```
 
-`getSuperNodes()` は、ノードのリストをサーバ( デフォルトは "https://supernodes.nem.io/nodes/")から取得する関数ですので、非同期の処理となっています。.
+`getSuperNodes()` は、ノードのリストをサーバ( デフォルトは "https://supernodes.nem.io/nodes/") から取得する関数ですので、非同期の処理となっています。.
 
 `getTestNodes()` を使うことで、テストネット用のノードの情報を取得する事もできます。
 この関数は固定のノード情報を返すだけですので、同期的に処理を行います。
@@ -169,7 +169,7 @@ val result = client.transactionAnnounce(transaction)
 ```
 
 受信したトランザクションからメッセージを読み取るには、下記のように実装します。
-```
+```kotlin
 val message = transaction.asTransfer?.message ?: return
 
 if (message.type == MessageType.Plain.rawValue) {

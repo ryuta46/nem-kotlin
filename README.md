@@ -166,7 +166,7 @@ val result = client.transactionAnnounce(transaction)
 ```
 
 You can read message from a transaction as follows
-```
+```kotlin
 val message = transaction.asTransfer?.message ?: return
 
 if (message.type == MessageType.Plain.rawValue) {
