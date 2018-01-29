@@ -23,6 +23,7 @@
  */
 package com.ryuta46.nemkotlin.model
 
+import com.ryuta46.nemkotlin.util.ConvertUtils
 import com.ryuta46.nemkotlin.util.ConvertUtils.Companion.toByteArrayWithLittleEndian
 
 /**
@@ -47,7 +48,7 @@ class TransferTransaction(private val common: Transaction,
                     toByteArrayWithLittleEndian(amount) +
                     if (message?.payload?.isNotEmpty() == true) {
                         // message field length is messageType length(4 bytes) + messagePayload length(4 bytes) + messagePayload
-                        val payloadBytes = message.payload.toByteArray(Charsets.UTF_8)
+                        val payloadBytes = ConvertUtils.toByteArray(message.payload)
                         (toByteArrayWithLittleEndian(message.type) +
                                 toByteArrayWithLittleEndian(payloadBytes.size) +
                                 payloadBytes).let {

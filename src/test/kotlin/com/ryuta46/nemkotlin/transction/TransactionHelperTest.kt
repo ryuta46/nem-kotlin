@@ -72,7 +72,7 @@ class TransactionHelperTest {
     data class CalculateMessageTransferFeeFixture(val message: String, val expected: Long)
 
     @Theory fun calculateMessageTransferFee(fixture: CalculateMessageTransferFeeFixture) {
-        assertEquals(fixture.expected, TransactionHelper.calculateMessageTransferFee(fixture.message))
+        assertEquals(fixture.expected, TransactionHelper.calculateMessageTransferFee(fixture.message.toByteArray(Charsets.UTF_8)))
     }
 
     data class CalculateMosaicTransferFeeFixture(val mosaicAttachment: MosaicAttachment, val expected: Long)

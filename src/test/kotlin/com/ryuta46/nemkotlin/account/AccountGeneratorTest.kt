@@ -23,8 +23,12 @@
  */
 package com.ryuta46.nemkotlin.account
 
+import com.ryuta46.nemkotlin.Settings
+import com.ryuta46.nemkotlin.TestUtils.Companion.printModel
+import com.ryuta46.nemkotlin.client.NemApiClient
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.util.ConvertUtils
+import com.ryuta46.nemkotlin.util.StandardLogger
 import junit.framework.TestCase.assertEquals
 import org.junit.experimental.theories.DataPoints
 import org.junit.experimental.theories.Theories
@@ -45,6 +49,15 @@ class AccountGeneratorTest {
     }
 
     data class FromSeedFixture(val seed: String, val version: Version, val expectedPublicKey: String, val expectedAddress: String)
+
+    private val mainClient: NemApiClient
+        get() = NemApiClient(Settings.MAIN_HOST, logger = StandardLogger())
+
+
+    @Theory fun fromRandom() {
+        val actual = AccountGenerator.fromRandomSeed(Version.Main)
+        printModel(mainClient.accountGet(actual.address))
+    }
 
     @Theory fun fromSeed(fixture: FromSeedFixture) {
         val actual = AccountGenerator.fromSeed(ConvertUtils.toByteArray(fixture.seed), fixture.version)

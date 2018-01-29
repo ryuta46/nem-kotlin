@@ -24,12 +24,19 @@
 
 package com.ryuta46.nemkotlin
 
+import com.google.gson.Gson
 import com.ryuta46.nemkotlin.model.NemAnnounceResult
 import com.ryuta46.nemkotlin.model.NemRequestResult
 import junit.framework.TestCase.assertEquals
 
 class TestUtils {
     companion object {
+        @JvmStatic fun <T>printModel(model: T) {
+            //val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(model)
+            val jsonString = Gson().toJson(model)
+            println(jsonString)
+        }
+
         @JvmStatic fun <T>waitUntilNotNull(timeout: Int = 30 * 1000, body: () -> T?): T? {
             for(i in 0 until timeout / 10) {
                 body()?.let {
@@ -44,6 +51,12 @@ class TestUtils {
                 if (body()) return
                 Thread.sleep(10)
             }
+        }
+
+        @JvmStatic fun checkResult(result: NemRequestResult) {
+            assertEquals(2, result.type)
+            assertEquals(1, result.code)
+            assertEquals("ok", result.message)
         }
 
         @JvmStatic fun checkResult(result: NemAnnounceResult) {
