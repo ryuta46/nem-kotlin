@@ -562,17 +562,17 @@ class NemApiClientTest {
     // read message
     @Theory fun readMessage(fixture: ReadMessageFixture) {
 
-        var hash = ""
+        var id = -1
         var transaction: TransactionMetaDataPair? = null
         do {
-            val transactions = client.accountTransfersIncoming(Settings.ADDRESS, hash = hash)
+            val transactions = client.accountTransfersIncoming(Settings.ADDRESS, id = id)
             transactions.forEach {
                 if (it.meta.hash.data == fixture.transactionHash) {
                     transaction = it
                     return@forEach
                 }
             }
-            hash = transactions.lastOrNull()?.meta?.hash?.data ?: break
+            id = transactions.lastOrNull()?.meta?.id ?: break
         } while(transaction != null)
 
         assertNotNull(transaction)

@@ -69,8 +69,8 @@ class NisUtils {
         @JvmStatic fun getTestNodes() = listOf(
                 NodeInfo("104.128.226.60", 7890),
                 NodeInfo("23.228.67.85", 7890),
-                //NodeInfo("192.3.61.243", 7890), This node is invalid ?
-                NodeInfo("50.3.87.123", 7890)
+                NodeInfo("192.3.61.243", 7890)
+                //NodeInfo("50.3.87.123", 7890) This node is invalid ?
         )
     }
 }
