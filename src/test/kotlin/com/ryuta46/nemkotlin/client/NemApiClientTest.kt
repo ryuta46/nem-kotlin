@@ -63,7 +63,8 @@ class NemApiClientTest {
                 TransferTransactionAnnounceFixture(1, "", MessageType.Plain, emptyList()),
                 TransferTransactionAnnounceFixture(0, "test", MessageType.Plain, emptyList()),
                 TransferTransactionAnnounceFixture(0, "TEST ENCRYPT MESSAGE", MessageType.Encrypted, emptyList()),
-                TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6)))
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6))),
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("ttech", "maxdivisibility", 30_000_000_000L, 9_000_000_000L, 6)))
         )
 
         @DataPoints @JvmStatic fun getReadMessageFixture() = arrayOf(
@@ -330,10 +331,14 @@ class NemApiClientTest {
             }
         }
 
+
+        val fee = TransactionHelper.createMosaicTransferTransactionObject(account.publicKeyString, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType).fee
+        print(fee)
         val request = when {
             fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType)
-            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, message, fixture.messageType)
+            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, fixture.xem * 1_000_000L, Version.Test, message, fixture.messageType)
         }
+
 
         val result = client.transactionAnnounce(request)
         printModel(result)
