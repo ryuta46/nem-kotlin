@@ -3,7 +3,7 @@ Read this in other languages: [English](README.md), [日本語](README.ja.md)
 
 # nem-kotlin
 
-nem-kotlin は NEM(New Economy Movement) のAPIを簡単に使うためのライブラリです.
+nem-kotlin は NEM のAPIを簡単に使うためのライブラリです.
 
 このライブラリは、NIS(NEM Infrastructure Server) に対してのHTTPリクエストと、NISからのHTTPのレスポンスのラッパーとして機能します。
 
@@ -22,7 +22,7 @@ nem-kotlin は NEM(New Economy Movement) のAPIを簡単に使うためのライ
 gradle を使う場合: (gradle のバージョン 2.x を使う場合は、 'implmentaion' のかわりに 'compile' を指定してください)
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.4.0'
+implementation 'com.ryuta46:nem-kotlin:0.4.1'
 ```
 
 maven を使う場合:
@@ -31,7 +31,7 @@ maven を使う場合:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
 </dependency>
 ```
 
