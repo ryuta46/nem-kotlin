@@ -37,7 +37,7 @@ class Hash {
          * Initializes hash functions. This method is called by nem-kotlin internally
          */
         @JvmStatic fun initialize() {
-            Security.addProvider(BouncyCastleProvider())
+            Security.insertProviderAt(BouncyCastleProvider(), 1)
         }
 
         /**

@@ -3,7 +3,7 @@ Read this in other languages: [English](README.md), [日本語](README.ja.md)
 
 # nem-kotlin
 
-nem-kotlin is a client library for easy use of NEM(New Economy Movement) API.
+nem-kotlin is a client library for easy use of NEM API.
 
 This library wraps HTTP requests to NIS(NEM Infrastructure Server) and HTTP responses from NIS.
 
@@ -22,7 +22,7 @@ Download the latest jar
 for gradle users: (If you use gradle versioned 2.x, specify 'compile' instead of 'implmentaion')
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.4.0'
+implementation 'com.ryuta46:nem-kotlin:0.4.1'
 ```
 
 for maven users:
@@ -31,7 +31,7 @@ for maven users:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.4.0</version>
+  <version>0.4.1</version>
 </dependency>
 ```
 

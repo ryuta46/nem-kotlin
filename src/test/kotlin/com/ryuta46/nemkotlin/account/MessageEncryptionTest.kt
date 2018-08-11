@@ -62,6 +62,9 @@ class MessageEncryptionTest {
     }
 
     @Theory fun decrypt(fixture: DecryptFixture) {
+        if (Settings.PRIVATE_KEY.isEmpty()) {
+            return
+        }
         val account = AccountGenerator.fromSeed(ConvertUtils.toByteArray(Settings.PRIVATE_KEY), Version.Test)
         val decryptedMessage = MessageEncryption.decrypt(account, ConvertUtils.toByteArray(Settings.RECEIVER_PUBLIC), ConvertUtils.toByteArray(fixture.message))
 

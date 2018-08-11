@@ -31,6 +31,7 @@ import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.model.*
 import com.ryuta46.nemkotlin.util.ConvertUtils
 import com.ryuta46.nemkotlin.util.ConvertUtils.Companion.toHexString
+import java.math.BigInteger
 import java.util.*
 
 /**
@@ -397,8 +398,10 @@ class TransactionHelper {
                 val totalMosaicQuantity = mosaic.supply * Math.pow(10.0, mosaic.divisibility.toDouble())
 
                 val supplyRelatedAdjustment = Math.floor(0.8 * Math.log(maxMosaicQuantity / totalMosaicQuantity)).toLong()
-                val xemEquivalent = (8_999_999_999L * mosaic.quantity) / ( mosaic.supply * Math.pow(10.0, mosaic.divisibility.toDouble()) )
-                val microNemEquivalentFee = calculateXemTransferFee((xemEquivalent * Math.pow(10.0, 6.0)).toLong())
+
+                val xemEquivalent = ((BigInteger.valueOf(8_999_999_999L) * BigInteger.valueOf(mosaic.quantity) ) /
+                        ( BigInteger.valueOf(mosaic.supply * Math.pow(10.0, mosaic.divisibility.toDouble()).toLong()) )).toLong()
+                val microNemEquivalentFee = calculateXemTransferFee(xemEquivalent  * Math.pow(10.0, 6.0).toLong())
 
                 Math.max(transferFeeFactor, microNemEquivalentFee - transferFeeFactor * supplyRelatedAdjustment)
             }

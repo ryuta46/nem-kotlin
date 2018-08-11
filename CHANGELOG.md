@@ -1,3 +1,10 @@
+## Version 0.4.1
+
+2018-08-11
+
+* Fix: Overflow during calculating mosaic transfer fee.
+* Fix: Set BouncyCastle's priority to high for Java9 or later.
+
 ## Version 0.4.0
 
 2018-01-06
