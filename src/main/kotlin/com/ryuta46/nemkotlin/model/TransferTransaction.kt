@@ -59,7 +59,7 @@ class TransferTransaction(private val common: Transaction,
                     } +
                     if (mosaics.isNotEmpty()) {
                         var mosaicBytes = ByteArray(0)
-                        mosaics.forEach { mosaic ->
+                        mosaics.sortedBy { it.mosaicId.fullName }.forEach { mosaic ->
                             val mosaicNameSpaceIdBytes = mosaic.mosaicId.namespaceId.toByteArray(Charsets.UTF_8)
                             val mosaicNameBytes = mosaic.mosaicId.name.toByteArray(Charsets.UTF_8)
                             // mosaic ID structure length is
