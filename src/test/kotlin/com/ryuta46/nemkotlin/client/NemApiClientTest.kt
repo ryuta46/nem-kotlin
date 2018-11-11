@@ -64,7 +64,27 @@ class NemApiClientTest {
                 TransferTransactionAnnounceFixture(0, "test", MessageType.Plain, emptyList()),
                 TransferTransactionAnnounceFixture(0, "TEST ENCRYPT MESSAGE", MessageType.Encrypted, emptyList()),
                 TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6))),
-                TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("ttech", "maxdivisibility", 30_000_000_000L, 9_000_000_000L, 6)))
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("ttech", "maxdivisibility", 30_000_000_000L, 9_000_000_000L, 6))),
+
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain,
+                        listOf(
+                                MosaicAttachment("ename", "ecoin1", 1, 9_000_000_000L, 0),
+                                MosaicAttachment("ename", "ecoin0", 1, 9_000_000_000L, 0))),
+
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain,
+                        listOf(
+                                MosaicAttachment("ename", "ecoin0", 1, 9_000_000_000L, 0),
+                                MosaicAttachment("ename", "ecoin1", 2, 9_000_000_000L, 0))),
+
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain,
+                        listOf(
+                                MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6),
+                                MosaicAttachment("ename", "ecoin0", 1, 9_000_000_000L, 0))),
+
+                TransferTransactionAnnounceFixture(0, "", MessageType.Plain,
+                        listOf(
+                                MosaicAttachment("ename", "ecoin0", 2, 9_000_000_000L, 0),
+                                MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6)))
         )
 
         @DataPoints @JvmStatic fun getReadMessageFixture() = arrayOf(
