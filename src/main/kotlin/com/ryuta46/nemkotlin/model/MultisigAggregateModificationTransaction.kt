@@ -45,7 +45,7 @@ class MultisigAggregateModificationTransaction(private val common: Transaction,
                 toByteArrayWithLittleEndian(modifications.size) +
                 let {
                     var modificationBytes = ByteArray(0)
-                    modifications.forEach {
+                    modifications.sortedBy { it.cosignatoryAccount }.forEach {
                         val publicKey = ConvertUtils.toByteArray(it.cosignatoryAccount)
                         modificationBytes +=
                                 (toByteArrayWithLittleEndian(it.modificationType) +
