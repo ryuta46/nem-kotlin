@@ -6,7 +6,7 @@
 
     <groupId>com.ryuta46</groupId>
     <artifactId>nem-kotlin</artifactId>
-    <version>0.4.1</version>
+    <version>0.4.2</version>
 
     <name>nem-kotlin</name>
     <description>nem-kotlin is client library for easy use of NEM(New Economy Movement) API.</description>
