@@ -325,8 +325,8 @@ class RxNemApiClientTest {
         }
 
         val request = when {
-            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType, timestamp = client.networkTime().blockingFirst().receiveTimeStampBySeconds)
-            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, message, fixture.messageType, timestamp = client.networkTime().blockingFirst().receiveTimeStampBySeconds)
+            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType, timeStamp = client.networkTime().blockingFirst().receiveTimeStampBySeconds)
+            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, message, fixture.messageType, timeStamp = client.networkTime().blockingFirst().receiveTimeStampBySeconds)
         }
         val result = client.transactionAnnounce(request).blockingFirst()
         printModel(result)
