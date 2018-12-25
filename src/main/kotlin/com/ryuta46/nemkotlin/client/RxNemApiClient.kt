@@ -190,5 +190,10 @@ class RxNemApiClient(hostUrl: String,
     fun transactionAnnounce(requestAnnounce: RequestAnnounce): Observable<NemAnnounceResult> =
             observe { syncClient.transactionAnnounce(requestAnnounce) }
 
+    /**
+     * @see NemApiClient.networkTime
+     */
+    fun networkTime(): Observable<NodeTimeStamp> =
+            observe { syncClient.networkTime() }
 }
 

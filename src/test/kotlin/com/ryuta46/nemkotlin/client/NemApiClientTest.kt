@@ -38,7 +38,6 @@ import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.exceptions.NetworkException
 import com.ryuta46.nemkotlin.model.AccountMetaDataPair
 import com.ryuta46.nemkotlin.model.MultisigCosignatoryModification
-import com.ryuta46.nemkotlin.model.Transaction
 import com.ryuta46.nemkotlin.model.TransactionMetaDataPair
 import com.ryuta46.nemkotlin.transaction.MosaicAttachment
 import com.ryuta46.nemkotlin.transaction.TransactionHelper
@@ -64,7 +63,6 @@ class NemApiClientTest {
                 TransferTransactionAnnounceFixture(0, "test", MessageType.Plain, emptyList()),
                 TransferTransactionAnnounceFixture(0, "TEST ENCRYPT MESSAGE", MessageType.Encrypted, emptyList()),
                 TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("nem", "xem", 1, 8_999_999_999L, 6))),
-                TransferTransactionAnnounceFixture(0, "", MessageType.Plain, listOf(MosaicAttachment("ttech", "maxdivisibility", 30_000_000_000L, 9_000_000_000L, 6))),
 
                 TransferTransactionAnnounceFixture(0, "", MessageType.Plain,
                         listOf(
@@ -355,8 +353,8 @@ class NemApiClientTest {
         val fee = TransactionHelper.createMosaicTransferTransactionObject(account.publicKeyString, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType).fee
         print(fee)
         val request = when {
-            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType)
-            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, fixture.xem * 1_000_000L, Version.Test, message, fixture.messageType)
+            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType, timeStamp = client.networkTime().receiveTimeStampBySeconds)
+            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, fixture.xem * 1_000_000L, Version.Test, message, fixture.messageType, timeStamp = client.networkTime().receiveTimeStampBySeconds)
         }
 
 
@@ -383,7 +381,8 @@ class NemApiClientTest {
             val ownerAccount = AccountGenerator.fromRandomSeed(Version.Test)
             val multisigRequest = TransactionHelper.createMultisigAggregateModificationTransaction(multisig, Version.Test,
                     modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, ownerAccount.publicKeyString)),
-                    minimumCosignatoriesModification = 1)
+                    minimumCosignatoriesModification = 1,
+                    timeStamp = client.networkTime().receiveTimeStampBySeconds)
 
             val multisigResult = client.transactionAnnounce(multisigRequest)
             printModel(multisigResult)
@@ -394,7 +393,7 @@ class NemApiClientTest {
         val account = AccountGenerator.fromSeed(ConvertUtils.toByteArray(Settings.PRIVATE_KEY), Version.Test)
 
         // first, transfer xem to create transaction
-        val request = TransactionHelper.createXemTransferTransaction(account, multisig.address, TransactionHelper.calculateMultisigAggregateModificationFee(), Version.Test)
+        val request = TransactionHelper.createXemTransferTransaction(account, multisig.address, TransactionHelper.calculateMultisigAggregateModificationFee(), Version.Test, timeStamp = client.networkTime().receiveTimeStampBySeconds)
         val result = client.transactionAnnounce(request)
         printModel(result)
         checkResult(result)
@@ -413,7 +412,8 @@ class NemApiClientTest {
 
         // second, create multisig transaction
         val modificationRequest = TransactionHelper.createMultisigAggregateModificationTransaction(multisig, Version.Test,
-                modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, account.publicKeyString)))
+                modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, account.publicKeyString)),
+                timeStamp = client.networkTime().receiveTimeStampBySeconds)
 
         val modificationResult = client.transactionAnnounce(modificationRequest)
         printModel(modificationResult)
@@ -446,10 +446,12 @@ class NemApiClientTest {
             // Create inner transaction of which deletes signer and decrements minimum cosignatory.
             val modificationTransaction = TransactionHelper.createMultisigAggregateModificationTransactionObject(Settings.MULTISIG_PUBLIC_KEY, Version.Test,
                     modifications = listOf(MultisigCosignatoryModification(ModificationType.Delete.rawValue, signer.publicKeyString)),
-                    minimumCosignatoriesModification = -1)
+                    minimumCosignatoriesModification = -1,
+                    timeStamp = client.networkTime().receiveTimeStampBySeconds)
 
             // Create multisig transaction
-            val multisigRequest = TransactionHelper.createMultisigTransaction(account, modificationTransaction, Version.Test)
+            val multisigRequest = TransactionHelper.createMultisigTransaction(account, modificationTransaction, Version.Test,
+                    timeStamp = client.networkTime().receiveTimeStampBySeconds)
             val multisigResult = client.transactionAnnounce(multisigRequest)
 
             printModel(multisigResult)
@@ -466,7 +468,7 @@ class NemApiClientTest {
             printModel(unconfirmedTransactions)
 
             val hash = unconfirmedTransactions.first().meta.data
-            val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(signer, hash, Settings.MULTISIG_ADDRESS, Version.Test)
+            val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(signer, hash, Settings.MULTISIG_ADDRESS, Version.Test, timeStamp = client.networkTime().receiveTimeStampBySeconds)
             val signatureResult = client.transactionAnnounce(signatureRequest)
             printModel(signatureResult)
             checkResult(multisigResult)
@@ -497,10 +499,11 @@ class NemApiClientTest {
             // Create inner transaction of which deletes signer and decrements minimum cosignatory.
             val modificationTransaction = TransactionHelper.createMultisigAggregateModificationTransactionObject(Settings.MULTISIG_PUBLIC_KEY, Version.Test,
                     modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, signer.publicKeyString)),
-                    minimumCosignatoriesModification = 1)
+                    minimumCosignatoriesModification = 1,
+                    timeStamp = client.networkTime().receiveTimeStampBySeconds)
 
             // Create multisig transaction
-            val multisigRequest = TransactionHelper.createMultisigTransaction(account, modificationTransaction, Version.Test)
+            val multisigRequest = TransactionHelper.createMultisigTransaction(account, modificationTransaction, Version.Test, timeStamp = client.networkTime().receiveTimeStampBySeconds)
             val multisigResult = client.transactionAnnounce(multisigRequest)
 
             printModel(multisigResult)
@@ -540,10 +543,12 @@ class NemApiClientTest {
 
         // Create inner transaction of which transfers XEM
         val transferTransaction = TransactionHelper.createXemTransferTransactionObject(Settings.MULTISIG_PUBLIC_KEY,
-                Settings.ADDRESS, 10, Version.Test)
+                Settings.ADDRESS, 10, Version.Test,
+                timeStamp = client.networkTime().receiveTimeStampBySeconds)
 
         // Create multisig transaction
-        val multisigRequest = TransactionHelper.createMultisigTransaction(account, transferTransaction, Version.Test)
+        val multisigRequest = TransactionHelper.createMultisigTransaction(account, transferTransaction, Version.Test,
+                timeStamp = client.networkTime().receiveTimeStampBySeconds)
         val multisigResult = client.transactionAnnounce(multisigRequest)
         printModel(multisigResult)
 
@@ -567,7 +572,8 @@ class NemApiClientTest {
         printModel(unconfirmedTransactions)
 
         val hash = unconfirmedTransactions.first().meta.data
-        val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(signer, hash, Settings.MULTISIG_ADDRESS, Version.Test)
+        val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(signer, hash, Settings.MULTISIG_ADDRESS, Version.Test,
+                timeStamp = client.networkTime().receiveTimeStampBySeconds)
 
         val signatureResult = client.transactionAnnounce(signatureRequest)
 
@@ -593,7 +599,7 @@ class NemApiClientTest {
                 }
             }
             id = transactions.lastOrNull()?.meta?.id ?: break
-        } while(transaction != null)
+        } while(transaction == null)
 
         assertNotNull(transaction)
 
@@ -616,5 +622,17 @@ class NemApiClientTest {
         assertEquals(fixture.expected, actual)
     }
 
+    @Test
+    fun networkTime() {
+        val result = client.networkTime()
+        val localTimeStamp = TransactionHelper.currentTimeFromOrigin()
+        val serverTimeStamp = result.receiveTimeStampBySeconds
 
+        println("serverTimeStamp: $serverTimeStamp")
+        println("localTimeStamp : $localTimeStamp")
+
+        val timeDiff = Math.abs(serverTimeStamp - localTimeStamp)
+
+        assertTrue(timeDiff < 3600)
+    }
 }
