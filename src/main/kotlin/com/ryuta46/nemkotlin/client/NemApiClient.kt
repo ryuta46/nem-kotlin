@@ -313,5 +313,13 @@ class NemApiClient(val hostUrl: String,
      */
     fun transactionAnnounce(requestAnnounce: RequestAnnounce): NemAnnounceResult =
             post("/transaction/announce", requestAnnounce)
+
+    /**
+     * Gets network time of the node.
+     * @return NodeTimeStamp object.
+     */
+    fun networkTime(): NodeTimeStamp =
+            get("/time-sync/network-time")
+
 }
 
