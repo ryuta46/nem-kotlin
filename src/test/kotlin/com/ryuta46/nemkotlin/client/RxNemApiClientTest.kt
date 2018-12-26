@@ -290,6 +290,13 @@ class RxNemApiClientTest {
         printModel(result)
     }
 
+    @Test
+    fun namespace() {
+        val namespace = client.namespace("ename").blockingFirst()
+        printModel(namespace)
+        assertEquals(namespace.owner, Settings.RECEIVER)
+    }
+
     @Test fun namespaceMosaicDefinitionPage(){
         val mosaicDefinitionArray = mainClient.namespaceMosaicDefinitionPage("ttech").blockingFirst()
         printModel(mosaicDefinitionArray)
