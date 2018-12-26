@@ -259,6 +259,16 @@ class NemApiClient(val hostUrl: String,
                         "increment" to increment.toString())).data
     }
 
+
+    /**
+     * Gets the namespace definition for a given namespace.
+     *
+     * @param namespace The namespace id.
+     * @return Namespace definition
+     */
+    fun namespace(namespace: String): Namespace =
+            get("/namespace", mapOf("namespace" to namespace))
+
     /**
      * Gets the mosaic definitions for a given namespace. The request supports paging.
      *

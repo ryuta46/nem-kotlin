@@ -173,6 +173,12 @@ class RxNemApiClient(hostUrl: String,
             observe { syncClient.accountHistoricalGet(address, startHeight, endHeight, increment) }
 
     /**
+     * @see NemApiClient.namespace
+     */
+    fun namespace(namespace: String): Observable<Namespace> =
+            observe { syncClient.namespace(namespace) }
+
+    /**
      * @see NemApiClient.namespaceMosaicDefinitionPage
      */
     fun namespaceMosaicDefinitionPage(namespace: String, id: Int = -1, pageSize: Int = -1): Observable<List<MosaicDefinitionMetaDataPair>> =
