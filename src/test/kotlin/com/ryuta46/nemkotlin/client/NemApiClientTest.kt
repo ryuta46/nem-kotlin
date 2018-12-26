@@ -311,6 +311,13 @@ class NemApiClientTest {
     }
 
     @Test
+    fun namespace() {
+        val namespace = client.namespace("ename")
+        printModel(namespace)
+        assertEquals(namespace.owner, Settings.RECEIVER)
+    }
+
+    @Test
     fun namespaceMosaicDefinitionPage() {
         val mosaicDefinitionArray = mainClient.namespaceMosaicDefinitionPage("ttech")
         printModel(mosaicDefinitionArray)
