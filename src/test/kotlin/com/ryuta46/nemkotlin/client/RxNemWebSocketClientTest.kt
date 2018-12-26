@@ -63,8 +63,9 @@ class RxNemWebSocketClientTest {
         val request = TransactionHelper.createMosaicTransferTransaction(
                 account,
                 Settings.RECEIVER,
-                listOf(MosaicAttachment("ttech", "ryuta", 1, 1_000_000,0)),
-                Version.Test)
+                listOf(MosaicAttachment("ename", "ecoin1", 1, 9_000_000_000L, 0)),
+                timeStamp = syncClient.networkTime().receiveTimeStampBySeconds,
+                version = Version.Test)
 
         val result = syncClient.transactionAnnounce(request)
 
