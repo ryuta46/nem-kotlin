@@ -116,13 +116,30 @@ rxClient.accountGet(account.address)
     }
 ```
 
+### Creating a transaction
+
+**トランザクションを作成する際は、NISからネットワーク時間を取得して、それをタイムスタンプとして使う必要があります。**
+
+最初に、NISからネットワーク時間を取得し、
+```kotlin
+val networkTime = client.networkTime()
+val timeStamp = networkTime.receiveTimeStampBySeconds
+```
+
+次に、取得した時間を `timeStamp` としてトランザクション作成時に設定します。
+```kotlin
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount, timeStamp = timeStamp)
+```
+
+`timeStamp` パラメータが省略された場合はローカル時間が使われますが、その場合はトランザクションを送信した際に `FAILURE_TIMESTAMP_TOO_FAR_IN_FUTURE` エラーが発生する場合があります。
+
 ### XEM、モザイクの送金
 
 送金など、署名が必要なトランザクションの生成は 'TransactionHelper' を使います。
 
 XEM 送金をする場合
 ```kotlin
-val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount)
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount, timeStamp = timeStamp)
 val result = client.transactionAnnounce(transaction)
 ```
 
@@ -131,7 +148,7 @@ val result = client.transactionAnnounce(transaction)
 モザイク送信をする場合
 ```kotlin
 val transaction = TransactionHelper.createMosaicTransferTransaction(account, receiverAddress,
-    listOf(MosaicAttachment(mosaicNamespaceId, mosaicName, quantity, mosaicSupply, mosaicDivisibility))
+    listOf(MosaicAttachment(mosaicNamespaceId, mosaicName, quantity, mosaicSupply, mosaicDivisibility), timeStamp = timeStamp)
 )
 val result = client.transactionAnnounce(transaction)
 ```
@@ -155,7 +172,8 @@ if (response != null) {
 val message = "message".toByteArray(Charsets.UTF_8)
 val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
         message = message,
-        messageType = MessageType.Plain)
+        messageType = MessageType.Plain,
+        timeStamp = timeStamp)
 val result = client.transactionAnnounce(transaction)
 ```
 
@@ -164,7 +182,8 @@ val result = client.transactionAnnounce(transaction)
 val message = MessageEncryption.encrypt(account, receiverPublicKey, "message".toByteArray(Charsets.UTF_8))
 val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
         message = message,
-        messageType = MessageType.Encrypted)
+        messageType = MessageType.Encrypted,
+        timeStamp = timeStamp)
 val result = client.transactionAnnounce(transaction)
 ```
 
@@ -191,7 +210,8 @@ if (message.type == MessageType.Plain.rawValue) {
 ```kotlin
 val multisigRequest = TransactionHelper.createMultisigAggregateModificationTransaction(account,
     modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, signerAccount.publicKeyString)),
-    minimumCosignatoriesModification = 1)
+    minimumCosignatoriesModification = 1,
+    timeStamp = timeStamp)
 
 val multisigResult = client.transactionAnnounce(multisigRequest)
 ```
@@ -200,16 +220,16 @@ val multisigResult = client.transactionAnnounce(multisigRequest)
 マルチシグアカウントからXEMを送金する場合
 ```kotlin
 // Create inner transaction of which transfers XEM
-val transferTransaction = TransactionHelper.createXemTransferTransactionObject(multisigAccountPublicKey, receiverAddress, amount)
+val transferTransaction = TransactionHelper.createXemTransferTransactionObject(multisigAccountPublicKey, receiverAddress, amount, timeStamp = timeStamp)
 
 // Create multisig transaction
-val multisigRequest = TransactionHelper.createMultisigTransaction(signerAccount, transferTransaction)
+val multisigRequest = TransactionHelper.createMultisigTransaction(signerAccount, transferTransaction, timeStamp = timeStamp)
 val multisigResult = client.transactionAnnounce(multisigRequest)
 ```
 
 さらに、そのトランザクションに署名を行う場合
 ```kotlin
-val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(anotherSignerAccount, innerTransactionHash, multisigAccountAddress)
+val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(anotherSignerAccount, innerTransactionHash, multisigAccountAddress, timeStamp = timeStamp)
 val signatureResult = client.transactionAnnounce(signatureRequest)
 ```
 

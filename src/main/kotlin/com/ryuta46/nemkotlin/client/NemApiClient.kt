@@ -259,6 +259,16 @@ class NemApiClient(val hostUrl: String,
                         "increment" to increment.toString())).data
     }
 
+
+    /**
+     * Gets the namespace definition for a given namespace.
+     *
+     * @param namespace The namespace id.
+     * @return Namespace definition
+     */
+    fun namespace(namespace: String): Namespace =
+            get("/namespace", mapOf("namespace" to namespace))
+
     /**
      * Gets the mosaic definitions for a given namespace. The request supports paging.
      *
@@ -313,5 +323,13 @@ class NemApiClient(val hostUrl: String,
      */
     fun transactionAnnounce(requestAnnounce: RequestAnnounce): NemAnnounceResult =
             post("/transaction/announce", requestAnnounce)
+
+    /**
+     * Gets network time of the node.
+     * @return NodeTimeStamp object.
+     */
+    fun networkTime(): NodeTimeStamp =
+            get("/time-sync/network-time")
+
 }
 

@@ -290,6 +290,13 @@ class RxNemApiClientTest {
         printModel(result)
     }
 
+    @Test
+    fun namespace() {
+        val namespace = client.namespace("ename").blockingFirst()
+        printModel(namespace)
+        assertEquals(namespace.owner, Settings.RECEIVER)
+    }
+
     @Test fun namespaceMosaicDefinitionPage(){
         val mosaicDefinitionArray = mainClient.namespaceMosaicDefinitionPage("ttech").blockingFirst()
         printModel(mosaicDefinitionArray)
@@ -325,8 +332,8 @@ class RxNemApiClientTest {
         }
 
         val request = when {
-            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType)
-            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, message, fixture.messageType)
+            fixture.mosaics.isNotEmpty() -> TransactionHelper.createMosaicTransferTransaction(account, Settings.RECEIVER, fixture.mosaics, Version.Test, message, fixture.messageType, timeStamp = client.networkTime().blockingFirst().receiveTimeStampBySeconds)
+            else -> TransactionHelper.createXemTransferTransaction(account, Settings.RECEIVER, 1, Version.Test, message, fixture.messageType, timeStamp = client.networkTime().blockingFirst().receiveTimeStampBySeconds)
         }
         val result = client.transactionAnnounce(request).blockingFirst()
         printModel(result)
@@ -341,6 +348,20 @@ class RxNemApiClientTest {
             assertEquals("FAILURE_INSUFFICIENT_BALANCE", result.message)
         }
 
+    }
+
+    @Test
+    fun networkTime() {
+        val result = client.networkTime().blockingFirst()
+        val localTimeStamp = TransactionHelper.currentTimeFromOrigin()
+        val serverTimeStamp = result.receiveTimeStampBySeconds
+
+        println("serverTimeStamp: $serverTimeStamp")
+        println("localTimeStamp : $localTimeStamp")
+
+        val timeDiff = Math.abs(serverTimeStamp - localTimeStamp)
+
+        assertTrue(timeDiff < 3600)
     }
 
 }

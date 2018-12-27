@@ -114,13 +114,30 @@ rxClient.accountGet(account.address)
     }
 ```
 
+### Creating a transaction
+
+**When creating a transaction, you should get network time from the NIS and use it as timeStamp.**
+
+First, get network time from the NIS
+```kotlin
+val networkTime = client.networkTime()
+val timeStamp = networkTime.receiveTimeStampBySeconds
+```
+
+Next, create a transaction using the acquired network time as timeStamp.
+```kotlin
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount, timeStamp = timeStamp)
+```
+
+The local time is used when the `timeStamp` parameter is omitted, but it may cause `FAILURE_TIMESTAMP_TOO_FAR_IN_FUTURE` error when the transaction is announced.
+
 ### Sending XEM and Mosaics
 
 TransactionHelper is an utility to create transactions which required account signing.
 
 To send XEM,
 ```kotlin
-val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount)
+val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount, timeStamp = timeStamp)
 val result = client.transactionAnnounce(transaction)
 ```
 Note that the amount specified above is micro nem unit. ( 1 XEM = 1,000,000 micro nem)
@@ -128,7 +145,7 @@ Note that the amount specified above is micro nem unit. ( 1 XEM = 1,000,000 micr
 To send mosaic,
 ```kotlin
 val transaction = TransactionHelper.createMosaicTransferTransaction(account, receiverAddress,
-    listOf(MosaicAttachment(mosaicNamespaceId, mosaicName, quantity, mosaicSupply, mosaicDivisibility))
+    listOf(MosaicAttachment(mosaicNamespaceId, mosaicName, quantity, mosaicSupply, mosaicDivisibility), timeStamp = timeStamp)
 )
 val result = client.transactionAnnounce(transaction)
 ```
@@ -152,7 +169,8 @@ To send XEM with a plain text message,
 val message = "message".toByteArray(Charsets.UTF_8)
 val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
         message = message,
-        messageType = MessageType.Plain)
+        messageType = MessageType.Plain,
+        timeStamp = timeStamp)
 val result = client.transactionAnnounce(transaction)
 ```
 
@@ -161,7 +179,8 @@ With a encrypted message,
 val message = MessageEncryption.encrypt(account, receiverPublicKey, "message".toByteArray(Charsets.UTF_8))
 val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, amount,
         message = message,
-        messageType = MessageType.Encrypted)
+        messageType = MessageType.Encrypted,
+        timeStamp = timeStamp)
 val result = client.transactionAnnounce(transaction)
 ```
 
@@ -188,7 +207,8 @@ To change an account to multisig account,
 ```kotlin
 val multisigRequest = TransactionHelper.createMultisigAggregateModificationTransaction(account,
     modifications = listOf(MultisigCosignatoryModification(ModificationType.Add.rawValue, signerAccount.publicKeyString)),
-    minimumCosignatoriesModification = 1)
+    minimumCosignatoriesModification = 1,
+    timeStamp = timeStamp)
 
 val multisigResult = client.transactionAnnounce(multisigRequest)
 ```
@@ -197,16 +217,16 @@ val multisigResult = client.transactionAnnounce(multisigRequest)
 To send XEM from multisig account,
 ```kotlin
 // Create inner transaction of which transfers XEM
-val transferTransaction = TransactionHelper.createXemTransferTransactionObject(multisigAccountPublicKey, receiverAddress, amount)
+val transferTransaction = TransactionHelper.createXemTransferTransactionObject(multisigAccountPublicKey, receiverAddress, amount, timeStamp = timeStamp)
 
 // Create multisig transaction
-val multisigRequest = TransactionHelper.createMultisigTransaction(signerAccount, transferTransaction)
+val multisigRequest = TransactionHelper.createMultisigTransaction(signerAccount, transferTransaction, timeStamp = timeStamp)
 val multisigResult = client.transactionAnnounce(multisigRequest)
 ```
 
 And to sign the transaction,
 ```kotlin
-val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(anotherSignerAccount, innerTransactionHash, multisigAccountAddress)
+val signatureRequest = TransactionHelper.createMultisigSignatureTransaction(anotherSignerAccount, innerTransactionHash, multisigAccountAddress, timeStamp = timeStamp)
 val signatureResult = client.transactionAnnounce(signatureRequest)
 ```
 

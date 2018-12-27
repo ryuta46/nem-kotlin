@@ -56,13 +56,13 @@ class TransactionHelper {
          * @param message Message payload. (Optional. The default is empty.)
          * @param messageType Message type.(Optional. The default is plain text.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createXemTransferTransactionObject(publicKey: String, receiverAddress: String, microNem: Long,
                                                           version: Version = Version.Main,
                                                           message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
-                                                          fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): TransferTransaction {
+                                                          fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): TransferTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
                 fee >= 0 -> fee
@@ -72,7 +72,7 @@ class TransactionHelper {
             val common = GeneralTransaction(
                     type = type.rawValue,
                     version = version.rawValue.shl(24) + type.versionOffset,
-                    timeStamp = timestamp,
+                    timeStamp = timeStamp,
                     signer = publicKey,
                     fee = calculatedFee,
                     deadline = deadline)
@@ -93,13 +93,13 @@ class TransactionHelper {
          * @param message Message payload. (Optional. The default is empty.)
          * @param messageType Message type.(Optional. The default is plain text.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createXemTransferTransaction(sender: Account, receiverAddress: String, microNem: Long,
                                                     version: Version = Version.Main,
                                                     message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
-                                                    fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+                                                    fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): RequestAnnounce {
             return createRequestAnnounce(sender,
                     createXemTransferTransactionObject(sender.publicKeyString,
                             receiverAddress,
@@ -107,7 +107,7 @@ class TransactionHelper {
                             version,
                             message, messageType,
                             fee,
-                            timestamp, deadline))
+                            timeStamp, deadline))
         }
 
         /**
@@ -119,13 +119,13 @@ class TransactionHelper {
          * @param message Message payload. (Optional. The default is empty.)
          * @param messageType Message type.(Optional. The default is plain text.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMosaicTransferTransactionObject(publicKey: String, receiverAddress: String, mosaics: List<MosaicAttachment>,
                                                              version: Version = Version.Main,
                                                              message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
-                                                             fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): TransferTransaction {
+                                                             fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): TransferTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
                 fee >= 0 -> fee
@@ -142,7 +142,7 @@ class TransactionHelper {
             val common = GeneralTransaction(
                     type = type.rawValue,
                     version = version.rawValue.shl(24) + type.versionOffset,
-                    timeStamp = timestamp,
+                    timeStamp = timeStamp,
                     signer = publicKey,
                     fee = calculatedFee,
                     deadline = deadline)
@@ -163,13 +163,13 @@ class TransactionHelper {
          * @param message Message payload. (Optional. The default is empty.)
          * @param messageType Message type.(Optional. The default is plain text.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMosaicTransferTransaction(sender: Account, receiverAddress: String, mosaics: List<MosaicAttachment>,
                                                        version: Version = Version.Main,
                                                        message: ByteArray = ByteArray(0), messageType: MessageType = MessageType.Plain,
-                                                       fee: Long = -1, timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+                                                       fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): RequestAnnounce {
             return createRequestAnnounce(sender,
                     createMosaicTransferTransactionObject(sender.publicKeyString,
                             receiverAddress,
@@ -177,7 +177,7 @@ class TransactionHelper {
                             version,
                             message, messageType,
                             fee,
-                            timestamp, deadline))
+                            timeStamp, deadline))
         }
 
 
@@ -188,13 +188,13 @@ class TransactionHelper {
          * @param modifications The list of multisig cosignatory modification. (Optional. The default is empty list.)
          * @param minimumCosignatoriesModification The relative value of minimum cosignatories modification.(Optional. The default is 0)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMultisigAggregateModificationTransactionObject(publicKey: String, version: Version = Version.Main,
-                                                                         modifications: List<MultisigCosignatoryModification> = emptyList(),
-                                                                         minimumCosignatoriesModification: Int = 0,
-                                                                         fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): MultisigAggregateModificationTransaction {
+                                                                            modifications: List<MultisigCosignatoryModification> = emptyList(),
+                                                                            minimumCosignatoriesModification: Int = 0,
+                                                                            fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): MultisigAggregateModificationTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
                 fee >= 0 -> fee
@@ -204,7 +204,7 @@ class TransactionHelper {
             val common = GeneralTransaction(
                     type = type.rawValue,
                     version = version.rawValue.shl(24) + type.versionOffset,
-                    timeStamp = timestamp,
+                    timeStamp = timeStamp,
                     signer = publicKey,
                     fee = calculatedFee,
                     deadline = deadline)
@@ -219,13 +219,13 @@ class TransactionHelper {
          * @param modifications The list of multisig cosignatory modification. (Optional. The default is empty list.)
          * @param minimumCosignatoriesModification The relative value of minimum cosignatories modification.(Optional. The default is 0)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMultisigAggregateModificationTransaction(sender: Account, version: Version = Version.Main,
                                                                       modifications: List<MultisigCosignatoryModification> = emptyList(),
                                                                       minimumCosignatoriesModification: Int = 0,
-                                                                      fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+                                                                      fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): RequestAnnounce {
             return createRequestAnnounce(sender,
                     createMultisigAggregateModificationTransactionObject(
                             sender.publicKeyString,
@@ -233,7 +233,7 @@ class TransactionHelper {
                             modifications,
                             minimumCosignatoriesModification,
                             fee,
-                            timestamp,
+                            timeStamp,
                             deadline))
         }
 
@@ -244,13 +244,13 @@ class TransactionHelper {
          * @param innerTransaction Transfer, importance transfer or aggregate modification transaction.
          * @param version Network version. (Optional. The default is Main network.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMultisigTransactionObject(publicKey: String,
-                                                    innerTransaction: Transaction,
-                                                    version: Version = Version.Main,
-                                                    fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): MultisigTransaction {
+                                                       innerTransaction: Transaction,
+                                                       version: Version = Version.Main,
+                                                       fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): MultisigTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
                 fee >= 0 -> fee
@@ -267,7 +267,7 @@ class TransactionHelper {
             val common = GeneralTransaction(
                     type = type.rawValue,
                     version = version.rawValue.shl(24) + type.versionOffset,
-                    timeStamp = timestamp,
+                    timeStamp = timeStamp,
                     signer = publicKey,
                     fee = calculatedFee,
                     deadline = deadline)
@@ -281,20 +281,20 @@ class TransactionHelper {
          * @param innerTransaction Transfer, importance transfer or aggregate modification transaction.
          * @param version Network version. (Optional. The default is Main network.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMultisigTransaction(sender: Account,
                                                  innerTransaction: Transaction,
                                                  version: Version = Version.Main,
-                                                 fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+                                                 fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): RequestAnnounce {
             return createRequestAnnounce(sender,
                     createMultisigTransactionObject(
                             sender.publicKeyString,
                             innerTransaction,
                             version,
                             fee,
-                            timestamp,
+                            timeStamp,
                             deadline))
         }
 
@@ -306,13 +306,13 @@ class TransactionHelper {
          * @param multisigAccount Traget multisig account address. (Required)
          * @param version Network version. (Optional. The default is Main network.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMultisigSignatureTransactionObject(publicKey: String,
-                                                             otherHash: String, multisigAccount: String,
-                                                             version: Version = Version.Main,
-                                                             fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): MultisigSignatureTransaction {
+                                                                otherHash: String, multisigAccount: String,
+                                                                version: Version = Version.Main,
+                                                                fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): MultisigSignatureTransaction {
             // calculate minimum transaction fee.
             val calculatedFee = when {
                 fee >= 0 -> fee
@@ -322,7 +322,7 @@ class TransactionHelper {
             val common = GeneralTransaction(
                     type = type.rawValue,
                     version = version.rawValue.shl(24) + type.versionOffset,
-                    timeStamp = timestamp,
+                    timeStamp = timeStamp,
                     signer = publicKey,
                     fee = calculatedFee,
                     deadline = deadline)
@@ -336,20 +336,20 @@ class TransactionHelper {
          * @param multisigAccount Traget multisig account address. (Required)
          * @param version Network version. (Optional. The default is Main network.)
          * @param fee Micro nem unit transaction fee. if negative value is specified, calculated minimum fee is used. (Optional. The default is -1)
-         * @param timestamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
-         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timestamp is used. (Optional. The default is -1)
+         * @param timeStamp Timestamp as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, calculated with the current time is used. (Optional. The default is -1)
+         * @param deadline Deadline as the number of seconds elapsed since the creation of the nemesis block. if negative value is specified, 1 hour after the timeStamp is used. (Optional. The default is -1)
          */
         @JvmStatic fun createMultisigSignatureTransaction(sender: Account,
                                                           otherHash: String, multisigAccount: String,
                                                           version: Version = Version.Main,
-                                                          fee: Long = -1 , timestamp: Int = -1, deadline: Int = -1): RequestAnnounce {
+                                                          fee: Long = -1, timeStamp: Int = -1, deadline: Int = -1): RequestAnnounce {
             return createRequestAnnounce(sender,
                     createMultisigSignatureTransactionObject(
                             sender.publicKeyString,
                             otherHash, multisigAccount,
                             version,
                             fee,
-                            timestamp,
+                            timeStamp,
                             deadline))
         }
 
