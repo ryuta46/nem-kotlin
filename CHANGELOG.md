@@ -1,3 +1,10 @@
+## Version 0.5.0
+
+2018-12-28
+
+* Add: Network time API
+* Add: Namespace API
+
 ## Version 0.4.2
 
 2018-11-12
