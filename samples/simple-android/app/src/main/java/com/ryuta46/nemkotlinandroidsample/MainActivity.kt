@@ -43,6 +43,7 @@ import com.ryuta46.nemkotlin.transaction.TransactionHelper
 import com.ryuta46.nemkotlin.util.ConvertUtils
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.schedulers.Schedulers
 
 class MainActivity : AppCompatActivity() {
@@ -59,12 +60,14 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var account: Account
 
-    private val client = RxNemApiClient("http://23.228.67.85:7890", logger = AndroidLogger())
+    private val client = RxNemApiClient("https://nistest.ttechdev.com:7891", logger = AndroidLogger())
 
-    private val mosaicNamespaceId = "ttech"
-    private val mosaicName = "ryuta"
+    private val mosaicNamespaceId = "ename"
+    private val mosaicName = "ecoin0"
     private var mosaicSupply: Long = 0
     private var mosaicDivisibility: Int = 0
+
+    private val compositeDisposable = CompositeDisposable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -108,7 +111,10 @@ class MainActivity : AppCompatActivity() {
 
                         try {
                             val microNem = xemEdit.text.toString().toLong()
-                            sendXem(addressEdit.text.toString(), microNem)
+                            fetchTimeStamp {timeStamp ->
+                                sendXem(addressEdit.text.toString(), microNem, timeStamp)
+                            }
+
                         } catch (e: NumberFormatException) {
                             return@setPositiveButton
                         }
@@ -136,7 +142,10 @@ class MainActivity : AppCompatActivity() {
 
                         try {
                             val microNem = xemEdit.text.toString().toLong()
-                            sendMosaic(addressEdit.text.toString(), microNem)
+                            fetchTimeStamp {timeStamp ->
+                                sendMosaic(addressEdit.text.toString(), microNem, timeStamp)
+                            }
+
                         } catch (e: NumberFormatException) {
                             return@setPositiveButton
                         }
@@ -152,39 +161,49 @@ class MainActivity : AppCompatActivity() {
         showMessageOnResponse(client.accountGet(account.address))
     }
 
+    private fun fetchTimeStamp(handler: (timeStamp: Int) -> Unit) {
+        compositeDisposable.add(client.networkTime()
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {response ->
+                    handler(response.receiveTimeStampBySeconds)
+                }
+        )
+    }
+
     private fun fetchMosaicDefinition(namespaceId: String, name: String) {
-        client.namespaceMosaicDefinitionFromName(namespaceId, name)
+        compositeDisposable.add(client.namespaceMosaicDefinitionFromName(namespaceId, name)
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .onErrorResumeNext{ _: Throwable -> Observable.empty<MosaicDefinitionMetaDataPair>() }
                 .subscribe { response: MosaicDefinitionMetaDataPair ->
                     mosaicSupply = response.mosaic.initialSupply!!
                     mosaicDivisibility = response.mosaic.divisibility!!
-                }
+                })
     }
 
-    private fun sendXem(receiverAddress: String, microNem: Long) {
-        val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, microNem, Version.Test)
+    private fun sendXem(receiverAddress: String, microNem: Long, timeStamp: Int) {
+        val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, microNem, Version.Test, timeStamp = timeStamp)
         showMessageOnResponse(client.transactionAnnounce(transaction))
     }
 
 
-    private fun sendMosaic(receiverAddress: String, quantity: Long) {
+    private fun sendMosaic(receiverAddress: String, quantity: Long, timeStamp: Int) {
         val transaction = TransactionHelper.createMosaicTransferTransaction(account, receiverAddress,
                 listOf(MosaicAttachment(mosaicNamespaceId, mosaicName, quantity, mosaicSupply, mosaicDivisibility)),
-                Version.Test)
+                Version.Test, timeStamp = timeStamp)
 
         showMessageOnResponse(client.transactionAnnounce(transaction))
     }
 
     private fun <T> showMessageOnResponse(observable: Observable<T>) {
-        observable.subscribeOn(Schedulers.newThread())
+        compositeDisposable.add(observable.subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .onErrorResumeNext{ _: Throwable -> Observable.empty<T>() }
                 .subscribe { response: T ->
                     val jsonString = GsonBuilder().setPrettyPrinting().create().toJson(response)
                     textMessage.text = jsonString
-                }
+                })
     }
 
     private fun loadPrivateKey() : String {
