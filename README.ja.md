@@ -22,7 +22,7 @@ nem-kotlin は NEM のAPIを簡単に使うためのライブラリです.
 gradle を使う場合: (gradle のバージョン 2.x を使う場合は、 'implmentaion' のかわりに 'compile' を指定してください)
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.4.2'
+implementation 'com.ryuta46:nem-kotlin:0.5.0'
 ```
 
 maven を使う場合:
@@ -31,7 +31,7 @@ maven を使う場合:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.4.2</version>
+  <version>0.5.0</version>
 </dependency>
 ```
 

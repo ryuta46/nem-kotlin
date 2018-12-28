@@ -22,7 +22,7 @@ Download the latest jar
 for gradle users: (If you use gradle versioned 2.x, specify 'compile' instead of 'implmentaion')
 
 ```gradle
-implementation 'com.ryuta46:nem-kotlin:0.4.2'
+implementation 'com.ryuta46:nem-kotlin:0.5.0'
 ```
 
 for maven users:
@@ -31,7 +31,7 @@ for maven users:
 <dependency>
   <groupId>com.ryuta46</groupId>
   <artifactId>nem-kotlin</artifactId>
-  <version>0.4.2</version>
+  <version>0.5.0</version>
 </dependency>
 ```
 
