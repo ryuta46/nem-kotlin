@@ -331,5 +331,11 @@ class NemApiClient(val hostUrl: String,
     fun networkTime(): NodeTimeStamp =
             get("/time-sync/network-time")
 
+    /**
+     * Gets mosaic current supply.
+     * @return MosaicSupply object
+     */
+    fun mosaicSupply(mosaicId: MosaicId): MosaicSupply =
+            get("/mosaic/supply", mapOf("mosaicId" to mosaicId.fullName))
 }
 

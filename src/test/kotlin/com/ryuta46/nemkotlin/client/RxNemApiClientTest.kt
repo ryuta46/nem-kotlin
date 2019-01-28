@@ -33,6 +33,8 @@ import com.ryuta46.nemkotlin.enums.MessageType
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.exceptions.NetworkException
 import com.ryuta46.nemkotlin.model.AccountMetaDataPair
+import com.ryuta46.nemkotlin.model.MosaicId
+import com.ryuta46.nemkotlin.model.MosaicSupply
 import com.ryuta46.nemkotlin.transaction.MosaicAttachment
 import com.ryuta46.nemkotlin.transaction.TransactionHelper
 import com.ryuta46.nemkotlin.util.ConvertUtils
@@ -364,4 +366,42 @@ class RxNemApiClientTest {
         assertTrue(timeDiff < 3600)
     }
 
+    @Test
+    fun mosaicSupply() {
+        val mosaicId = MosaicId("ename", "supply_change_10000_15000")
+        val result = client.mosaicSupply(mosaicId).blockingFirst()
+
+        assertEquals(mosaicId.namespaceId, result.mosaicId.namespaceId)
+        assertEquals(mosaicId.name, result.mosaicId.name)
+
+        assertEquals(15000, result.supply)
+    }
+
+    @Test
+    fun mosaicSupplyNotFound() {
+        val mosaicId = MosaicId("ename", "foo_bar_foo_bar_foo_bar")
+
+        val errors = mutableListOf<Throwable>()
+        val observable = client.mosaicSupply(mosaicId)
+
+        var result: MosaicSupply? = null
+
+        observable.subscribeOn(Schedulers.newThread())
+                .onErrorResumeNext{ e: Throwable ->
+                    errors.add(e)
+                    Observable.empty<MosaicSupply>()
+                }
+                .subscribe { response: MosaicSupply ->
+                    result = response
+                }
+
+        assertNull(result)
+
+        Thread.sleep(5000)
+
+        assertNull(result)
+        assertEquals(1, errors.size)
+
+        assertEquals(NetworkException::class, errors[0]::class)
+    }
 }
