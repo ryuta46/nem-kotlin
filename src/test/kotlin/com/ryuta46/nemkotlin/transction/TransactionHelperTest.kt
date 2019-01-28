@@ -61,7 +61,14 @@ class TransactionHelperTest {
                 CalculateMosaicTransferFeeFixture(MosaicAttachment("ttech", "ryuta", 28, 1_000_000, 0), 350_000),
                 CalculateMosaicTransferFeeFixture(MosaicAttachment("ttech", "ryuta", 29, 1_000_000, 0), 350_000),
                 CalculateMosaicTransferFeeFixture(MosaicAttachment("ttech", "maxdivisibility", 30_000_000_000L, 9_000_000_000L, 6), 100_000),
-                CalculateMosaicTransferFeeFixture(MosaicAttachment("ttech", "maxdivisibility", 30_000_000_000L, 8_999_999_999L, 6), 150_000)
+                CalculateMosaicTransferFeeFixture(MosaicAttachment("ttech", "maxdivisibility", 30_000_000_000L, 8_999_999_999L, 6), 150_000),
+
+
+                CalculateMosaicTransferFeeFixture(MosaicAttachment("ename", "small_business_mosaic", 1, 1_000, 0), 50_000),
+                CalculateMosaicTransferFeeFixture(MosaicAttachment("ename", "small_business_mosaic", 10_000, 10_000, 0), 50_000),
+                CalculateMosaicTransferFeeFixture(MosaicAttachment("ename", "not_small_business_mosaic", 10_000, 10_001, 0), 150_000),
+                CalculateMosaicTransferFeeFixture(MosaicAttachment("ename", "middle_mosaic", 1, 15_000, 0), 200_000),
+                CalculateMosaicTransferFeeFixture(MosaicAttachment("ename", "middle_mosaic", 10_000, 15_000, 0), 200_000)
         )
     }
 

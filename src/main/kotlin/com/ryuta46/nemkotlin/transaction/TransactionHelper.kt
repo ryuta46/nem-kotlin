@@ -391,7 +391,7 @@ class TransactionHelper {
          * @return Micro nem unit transfer fee.
          */
         @JvmStatic fun calculateMosaicTransferFee(mosaic: MosaicAttachment): Long {
-            return if ( mosaic.divisibility == 0 && mosaic.supply < 10_000 ) {
+            return if ( mosaic.divisibility == 0 && mosaic.supply <= 10_000 ) { // small business mosaic
                 transferFeeFactor
             } else {
                 val maxMosaicQuantity = 9_000_000_000_000_000L

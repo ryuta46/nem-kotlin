@@ -155,15 +155,20 @@ val result = client.transactionAnnounce(transaction)
 
 モザイクの供給量や可分性は、最低手数料を計算する際に用いられます。
 
-もしそれらの値が不明な場合は、'namespaceMosaicDefinitionFromName' を使って取得することが出来ます。
+もしそれらの値が不明な場合は、'namespaceMosaicDefinitionFromName' と 'mosaicSupply' を使って取得することが出来ます。
 
 ```kotlin
 val response = client.namespaceMosaicDefinitionFromName(namespaceId, name)
 if (response != null) {
-    supply = response.mosaic.initialSupply!!
     divisibility = response.mosaic.divisibility!!
 }
 ```
+
+```kotlin
+val response = client.mosaicSupply(mosaicId)
+supply = response.supply
+```
+
 
 ### メッセージの送受信
 
