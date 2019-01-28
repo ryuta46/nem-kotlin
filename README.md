@@ -152,14 +152,18 @@ val result = client.transactionAnnounce(transaction)
 
 Mosaic's supply and divisibility are used to calculate minimum transaction fee.
 
-You can get these parameters of mosaic with 'namespaceMosaicDefinitionFromName' if you don't know them.
+You can get these parameters of mosaic with 'namespaceMosaicDefinitionFromName' and 'mosaicSupply' if you don't know them.
 
 ```kotlin
 val response = client.namespaceMosaicDefinitionFromName(namespaceId, name)
 if (response != null) {
-    supply = response.mosaic.initialSupply!!
     divisibility = response.mosaic.divisibility!!
 }
+```
+
+```kotlin
+val response = client.mosaicSupply(mosaicId)
+supply = response.supply
 ```
 
 ### Sending and Receiving message.
