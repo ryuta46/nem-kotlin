@@ -201,5 +201,11 @@ class RxNemApiClient(hostUrl: String,
      */
     fun networkTime(): Observable<NodeTimeStamp> =
             observe { syncClient.networkTime() }
+
+    /**
+     * @see NemApiClient.mosaicSupply
+     */
+    fun mosaicSupply(mosaicId: MosaicId): Observable<MosaicSupply> =
+            observe { syncClient.mosaicSupply(mosaicId) }
 }
 

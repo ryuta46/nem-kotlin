@@ -38,6 +38,8 @@ import com.ryuta46.nemkotlin.account.AccountGenerator
 import com.ryuta46.nemkotlin.client.RxNemApiClient
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.model.MosaicDefinitionMetaDataPair
+import com.ryuta46.nemkotlin.model.MosaicId
+import com.ryuta46.nemkotlin.model.MosaicSupply
 import com.ryuta46.nemkotlin.transaction.MosaicAttachment
 import com.ryuta46.nemkotlin.transaction.TransactionHelper
 import com.ryuta46.nemkotlin.util.ConvertUtils
@@ -63,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private val client = RxNemApiClient("https://nistest.ttechdev.com:7891", logger = AndroidLogger())
 
     private val mosaicNamespaceId = "ename"
-    private val mosaicName = "ecoin0"
+    private val mosaicName = "supply_change_10000_15000"
     private var mosaicSupply: Long = 0
     private var mosaicDivisibility: Int = 0
 
@@ -93,6 +95,7 @@ class MainActivity : AppCompatActivity() {
     private fun setupView() {
         fetchAccountInfo()
         fetchMosaicDefinition(mosaicNamespaceId, mosaicName)
+        fetchMosaicSupply(mosaicNamespaceId, mosaicName)
     }
     private fun setupListeners() {
         buttonAccountInfo.setOnClickListener {
@@ -176,11 +179,23 @@ class MainActivity : AppCompatActivity() {
                 .subscribeOn(Schedulers.newThread())
                 .observeOn(AndroidSchedulers.mainThread())
                 .onErrorResumeNext{ _: Throwable -> Observable.empty<MosaicDefinitionMetaDataPair>() }
-                .subscribe { response: MosaicDefinitionMetaDataPair ->
-                    mosaicSupply = response.mosaic.initialSupply!!
-                    mosaicDivisibility = response.mosaic.divisibility!!
+                .subscribe { response: MosaicDefinitionMetaDataPair? ->
+                    mosaicDivisibility = response!!.mosaic.divisibility!!
                 })
     }
+
+
+    private fun fetchMosaicSupply(namespaceId: String, name: String) {
+        val mosaicId = MosaicId(namespaceId, name)
+        compositeDisposable.add(client.mosaicSupply(mosaicId)
+                .subscribeOn(Schedulers.newThread())
+                .observeOn(AndroidSchedulers.mainThread())
+                .onErrorResumeNext{ _: Throwable -> Observable.empty<MosaicSupply>() }
+                .subscribe { response: MosaicSupply ->
+                    mosaicSupply = response.supply
+                })
+    }
+
 
     private fun sendXem(receiverAddress: String, microNem: Long, timeStamp: Int) {
         val transaction = TransactionHelper.createXemTransferTransaction(account, receiverAddress, microNem, Version.Test, timeStamp = timeStamp)

@@ -1,3 +1,9 @@
+## Version 0.6.0
+
+2019-01-29
+
+* Add: Mosaic Supply API
+
 ## Version 0.5.0
 
 2018-12-28

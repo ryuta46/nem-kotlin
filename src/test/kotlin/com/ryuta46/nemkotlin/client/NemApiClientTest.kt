@@ -36,9 +36,7 @@ import com.ryuta46.nemkotlin.enums.MessageType
 import com.ryuta46.nemkotlin.enums.ModificationType
 import com.ryuta46.nemkotlin.enums.Version
 import com.ryuta46.nemkotlin.exceptions.NetworkException
-import com.ryuta46.nemkotlin.model.AccountMetaDataPair
-import com.ryuta46.nemkotlin.model.MultisigCosignatoryModification
-import com.ryuta46.nemkotlin.model.TransactionMetaDataPair
+import com.ryuta46.nemkotlin.model.*
 import com.ryuta46.nemkotlin.transaction.MosaicAttachment
 import com.ryuta46.nemkotlin.transaction.TransactionHelper
 import com.ryuta46.nemkotlin.util.ConvertUtils
@@ -641,5 +639,22 @@ class NemApiClientTest {
         val timeDiff = Math.abs(serverTimeStamp - localTimeStamp)
 
         assertTrue(timeDiff < 3600)
+    }
+
+    @Test
+    fun mosaicSupply() {
+        val mosaicId = MosaicId("ename", "supply_change_10000_15000")
+        val result = client.mosaicSupply(mosaicId)
+
+        assertEquals(mosaicId.namespaceId, result.mosaicId.namespaceId)
+        assertEquals(mosaicId.name, result.mosaicId.name)
+
+        assertEquals(15000, result.supply)
+    }
+
+    @Test(expected = NetworkException::class)
+    fun mosaicSupplyNotFound() {
+        val mosaicId = MosaicId("ename", "foo_bar_foo_bar_foo_bar")
+        client.mosaicSupply(mosaicId)
     }
 }
